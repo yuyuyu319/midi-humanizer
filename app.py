@@ -6,38 +6,50 @@ import time
 
 app = Flask(__name__)
 
-# --- デザイン（HTML）をここに内蔵 ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MIDI Humanizer Online</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Humanizer | DAW用リズム揺らぎ付加ツール</title>
     <style>
-        body { background: #1a1a1a; color: #e0e0e0; font-family: sans-serif; text-align: center; padding: 50px; }
-        .container { background: #2d2d2d; border-radius: 15px; padding: 40px; width: 400px; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .box { border: 2px dashed #555; padding: 30px; border-radius: 10px; margin-bottom: 20px; }
-        .param { margin: 15px 0; text-align: left; }
-        label { display: block; font-size: 0.9em; color: #aaa; }
-        input[type="number"] { background: #444; border: 1px solid #555; color: white; padding: 8px; border-radius: 5px; width: 100%; box-sizing: border-box; }
-        button { background: #81C995; color: #121212; border: none; border-radius: 8px; padding: 15px 30px; font-weight: bold; cursor: pointer; width: 100%; }
+        body { background: #121212; color: #e0e0e0; font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 40px auto; background: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { color: #81C995; text-align: center; }
+        .box { border: 2px dashed #444; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
+        .param { margin: 15px 0; }
+        label { display: block; font-size: 0.8em; color: #999; margin-bottom: 5px; }
+        input[type="number"] { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #333; color: white; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #81C995; color: #121212; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1em; }
+        .info { margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; font-size: 0.9em; color: #bbb; }
+        .info h2 { font-size: 1.1em; color: #81C995; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>MIDI Humanizer</h1>
+        <p style="text-align:center;">MIDIファイルに音楽的な「揺らぎ」を与えます。</p>
+        
         <form action="/process" method="post" enctype="multipart/form-data">
-            <div class="box"><input type="file" name="midi_file" required></div>
+            <div class="box"><input type="file" name="midi_file" accept=".mid,.midi" required></div>
             <div class="param">
-                <label>ベロシティ揺れ幅 (0-50):</label>
+                <label>ベロシティの揺れ (1-50):</label>
                 <input type="number" name="v_range" value="20">
             </div>
             <div class="param">
-                <label>タイミング揺れ幅 (1拍に対する%):</label>
+                <label>タイミングの揺れ (1拍に対する%):</label>
                 <input type="number" name="t_percent" value="5">
             </div>
-            <button type="submit">ランダマイズして保存</button>
+            <button type="submit">ランダマイズしてダウンロード</button>
         </form>
+
+        <div class="info">
+            <h2>このツールについて</h2>
+            <p>打ち込み特有の「機械的な正確さ」を解消するために開発されました。独自のアルゴリズムにより、ノートの重なりを自動解消しつつ、1音ごとに独立したタイミングと強弱の変化を与えます。</p>
+            <h2>使い方のヒント</h2>
+            <p>ドラムトラックならタイミング3-5%、ベロシティ15-25程度が自然です。極端に設定すると実験的なグリッチサウンドも作成可能です。</p>
+        </div>
     </div>
 </body>
 </html>
@@ -100,7 +112,6 @@ def process_midi_logic(midi_file_stream, v_range, t_percent):
 
 @app.route('/')
 def index():
-    # ファイルを介さず文字列としてHTMLを返す
     response = make_response(HTML_PAGE)
     response.headers['Content-Type'] = 'text/html; charset=utf-8'
     return response
@@ -114,6 +125,8 @@ def process():
     filename = f"humanized_{int(time.time())}.mid"
     return send_file(processed_midi, as_attachment=True, download_name=filename, mimetype='audio/midi')
 
+# Render用にポート番号を環境変数から読み取れるように変更
 if __name__ == '__main__':
-    # ポートを少し変えて、古いキャッシュから逃げます
-    app.run(debug=True, port=5001)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
