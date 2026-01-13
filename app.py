@@ -7,7 +7,7 @@ from flask import Flask, request, send_file, make_response
 
 app = Flask(__name__)
 
-# --- デザイン & コンテンツ ---
+# 全5サイトを繋ぎ、デザインを統一した最終形態
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
@@ -23,7 +23,7 @@ HTML_PAGE = """
     <style>
         :root { --accent: #00e676; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; text-align: center; padding: 50px 20px; margin:0; line-height: 1.6; }
-        .card { background: var(--card); padding: 40px; border-radius: 24px; max-width: 600px; margin: auto; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        .card { background: var(--card); padding: 40px; border-radius: 24px; max-width: 650px; margin: auto; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
         h1 { color: var(--accent); font-size: 2.5rem; margin-bottom: 10px; font-weight: 800; }
         .subtitle { color: #94a3b8; margin-bottom: 30px; font-size: 1.1rem; }
         .form-group { margin-bottom: 25px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto; }
@@ -33,13 +33,16 @@ HTML_PAGE = """
         button { background: var(--accent); color: black; border: none; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1rem; margin-top: 20px; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0,230,118,0.3); }
         button:hover { background: #00ff84; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,230,118,0.4); }
         
-        .link-box { margin-top: 25px; padding-top: 20px; border-top: 1px solid #334155; font-size: 0.85rem; color: #94a3b8; }
-        .link-box a { color: #00b0ff; text-decoration: none; font-weight: bold; }
-        .link-box a.limiter { color: #ff9100; }
+        /* 相互リンク用スタイル：各ツールのカラーを反映 */
+        .link-box { margin-top: 25px; padding-top: 20px; border-top: 1px solid #334155; font-size: 0.8rem; color: #94a3b8; }
+        .link-box a { text-decoration: none; font-weight: bold; margin: 0 4px; display: inline-block; }
+        .link-box a.normalizer { color: #00b0ff; } /* 青 */
+        .link-box a.limiter { color: #ff9100; }    /* 橙 */
+        .link-box a.compressor { color: #d500f9; } /* 紫 */
+        .link-box a.expander { color: #ff5252; }   /* 赤 */
 
         .content-section { max-width: 700px; margin: 60px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
         .content-section h2 { color: var(--accent); border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 40px; }
-        .content-section h3 { color: #f8fafc; font-size: 1.2rem; }
         .tips { background: #0f172a; padding: 25px; border-radius: 12px; border-left: 5px solid var(--accent); margin: 20px 0; }
         .tips ul { padding-left: 20px; }
         
@@ -67,33 +70,34 @@ HTML_PAGE = """
             <button type="submit">PROCESS & DOWNLOAD</button>
         </form>
         <div class="link-box">
-            他のツールを使う:<br>
-            <a href="https://midi-normalizer.onrender.com/">MIDI Normalizer</a> | 
-            <a href="https://midi-limiter.onrender.com/" class="limiter">MIDI Limiter</a>
+            関連ツール: 
+            <a href="https://midi-normalizer.onrender.com/" class="normalizer">Normalizer</a> | 
+            <a href="https://midi-limiter.onrender.com/" class="limiter">Limiter</a> | 
+            <a href="https://midi-compressor.onrender.com/" class="compressor">Compressor</a> | 
+            <a href="https://midi-expander.onrender.com/" class="expander">Expander</a>
         </div>
     </div>
 
     <div class="content-section">
         <h2>なぜMIDIヒューマナイズが必要なのか？</h2>
-        <p>DAWでの完璧なグリッド入力は、演奏に機械的な印象を与えてしまうことがあります。本ツールは、人間が実際に演奏した際に生じる微細な「強弱のムラ」と「タイミングのズレ」をシミュレートし、楽曲に自然なグルーヴと深みを与えます。</p>
+        <p>DAWでの完璧なグリッド入力は機械的な印象を与えます。本ツールは「強弱」と「タイミング」に微細なズレを加え、楽曲に自然なグルーヴと深みを与えます。</p>
 
         <h3>スマート・クリッピング・ロジック</h3>
-        <p>タイミングをずらした結果、次のノートと重なってしまった場合、本ツールは先行するノートの長さを自動的に調整し、音切れや不自然な発音停止を防ぎます。</p>
+        <p>タイミングをずらした結果、次のノートと重なってしまった場合、本ツールは先行するノートの長さを自動調整し、不自然な発音停止を防ぎます。</p>
 
         <div class="tips">
             <h3>推奨設定ガイド</h3>
             <ul>
                 <li><strong>Kick / Snare:</strong> タイミング 2-3%, ベロシティ 15-20</li>
                 <li><strong>Hi-Hats / Percussion:</strong> タイミング 4-6%, ベロシティ 25-35</li>
-                <li><strong>Electric Piano / Guitar:</strong> タイミング 3-5%, ベロシティ 20-30</li>
+                <li><strong>Piano / Guitar:</strong> タイミング 3-5%, ベロシティ 20-30</li>
             </ul>
         </div>
     </div>
 
     <div class="policy-section">
         <h2>プライバシーポリシー</h2>
-        <p><strong>データ処理：</strong>アップロードされたMIDIファイルはサーバーに保存されず、メモリ内で即座に処理・返送されます。機密性は完全に守られます。</p>
-        <p><strong>広告配信：</strong>当サイトではGoogle AdSense等の第三者配信事業者がCookieを利用して広告を配信する場合があります。</p>
+        <p><strong>データ処理：</strong>MIDIファイルはサーバーに保存されず、メモリ内で即座に処理されます。当サイトではGoogle AdSenseを利用しています。</p>
     </div>
 
     <div class="footer-copy">&copy; 2026 MIDI Humanizer. All rights reserved.</div>
@@ -101,7 +105,6 @@ HTML_PAGE = """
 </html>
 """
 
-# --- MIDI処理ロジック ---
 def process_midi_logic(midi_file_stream, v_range, t_percent):
     midi_file_stream.seek(0)
     input_data = io.BytesIO(midi_file_stream.read())
@@ -156,7 +159,6 @@ def process_midi_logic(midi_file_stream, v_range, t_percent):
     output.seek(0)
     return output
 
-# --- ルーティング ---
 @app.route('/')
 def index():
     response = make_response(HTML_PAGE)
