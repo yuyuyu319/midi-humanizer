@@ -5,10 +5,10 @@ import random
 import mido
 from flask import Flask, request, send_file, make_response
 
-# ⚠️ Renderが認識するアプリ本体
+# Renderが認識するアプリ本体
 app = Flask(__name__)
 
-# --- デザイン & コンテンツ & 広告コード ---
+# あなたが修正した内容をベースに、不要なProを削除し、相互リンクを統合しました
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
@@ -25,7 +25,7 @@ HTML_PAGE = """
         body { background: #0f172a; color: #f8fafc; font-family: 'Inter', -apple-system, sans-serif; text-align: center; padding: 50px 20px; margin:0; line-height: 1.6; }
         .card { background: #1e293b; padding: 40px; border-radius: 24px; max-width: 600px; margin: auto; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
         h1 { color: #00e676; font-size: 2.5rem; margin-bottom: 10px; font-weight: 800; }
-        p.subtitle { color: #94a3b8; margin-bottom: 30px; font-size: 1.1rem; }
+        .subtitle { color: #94a3b8; margin-bottom: 30px; font-size: 1.1rem; }
         .form-group { margin-bottom: 25px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto; }
         label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; font-weight: 600; }
         input[type="number"] { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 8px; font-size: 1rem; box-sizing: border-box; transition: 0.3s; }
@@ -33,6 +33,9 @@ HTML_PAGE = """
         button { background: #00e676; color: black; border: none; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1rem; margin-top: 20px; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0,230,118,0.3); }
         button:hover { background: #00ff84; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,230,118,0.4); }
         
+        .link-box { margin-top: 25px; padding-top: 20px; border-top: 1px solid #334155; font-size: 0.85rem; color: #94a3b8; }
+        .link-box a { color: #00b0ff; text-decoration: none; font-weight: bold; }
+
         .content-section { max-width: 700px; margin: 60px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
         .content-section h2 { color: #00e676; border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 40px; }
         .content-section h3 { color: #f8fafc; font-size: 1.2rem; }
@@ -46,7 +49,7 @@ HTML_PAGE = """
 </head>
 <body>
     <div class="card">
-        <h1>MIDI Humanizer Pro</h1>
+        <h1>MIDI Humanizer</h1>
         <p class="subtitle">打ち込みに、計算された音楽的な「揺らぎ」を。</p>
         <form action="/process" method="post" enctype="multipart/form-data">
             <div style="margin-bottom: 30px; border: 2px dashed #334155; padding: 20px; border-radius: 12px;">
@@ -62,6 +65,10 @@ HTML_PAGE = """
             </div>
             <button type="submit">PROCESS & DOWNLOAD</button>
         </form>
+        <div class="link-box">
+            音量を平均化したいですか？ <br>
+            <a href="https://midi-normalizer.onrender.com/">→ MIDI Normalizer を使う</a>
+        </div>
     </div>
 
     <div class="content-section">
@@ -87,7 +94,7 @@ HTML_PAGE = """
         <p><strong>広告配信：</strong>当サイトではGoogle AdSense等の第三者配信事業者がCookieを利用して広告を配信する場合があります。これにより、ユーザーの興味に応じた広告が表示されます。</p>
     </div>
 
-    <div class="footer-copy">&copy; 2026 MIDI Humanizer Pro. All rights reserved.</div>
+    <div class="footer-copy">&copy; 2026 MIDI Humanizer. All rights reserved.</div>
 </body>
 </html>
 """
