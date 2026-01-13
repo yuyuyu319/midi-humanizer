@@ -67,7 +67,7 @@ HTML_PAGE = """
                 <label>タイミング揺れ幅 (1拍に対する %)</label>
                 <input type="number" name="t_percent" value="5" min="0" max="20">
             </div>
-            <button type="submit">PROCESS & DOWNLOAD</button>
+            <button type="submit">HUMANIZE & DOWNLOAD</button>
         </form>
         <div class="link-box">
             関連ツール: 
