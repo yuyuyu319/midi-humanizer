@@ -15,6 +15,10 @@ HTML_PAGE = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIDI Humanizer Pro | DAW用高精度リズム揺らぎ付加ツール</title>
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4758959657594096"
+     crossorigin="anonymous"></script>
+     
     <style>
         body { background: #0f172a; color: #f8fafc; font-family: sans-serif; text-align: center; padding: 50px 20px; margin:0; }
         .card { background: #1e293b; padding: 40px; border-radius: 24px; max-width: 600px; margin: auto; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
