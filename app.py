@@ -20,7 +20,8 @@ HTML_PAGE = """
     <style>
         :root { --accent: #00e676; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; text-align: center; padding: 50px 20px; margin:0; line-height: 1.6; }
-        .card { background: var(--card); padding: 40px; border-radius: 24px; max-width: 750px; margin: auto; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        /* 横幅を800pxに統一 */
+        .card { background: var(--card); padding: 40px; border-radius: 24px; max-width: 800px; margin: auto; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
         h1 { color: var(--accent); font-size: 2.5rem; margin-bottom: 10px; font-weight: 800; }
         .subtitle { color: #94a3b8; margin-bottom: 30px; font-size: 1.1rem; }
         .form-group { margin: 25px 0; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto; }
@@ -41,9 +42,10 @@ HTML_PAGE = """
         .link-box a.normalizer { color: #00b0ff; } .link-box a.limiter { color: #ff9100; }
         .link-box a.compressor { color: #d500f9; } .link-box a.expander { color: #ff5252; }
 
-        .content-section { max-width: 850px; margin: 60px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
+        .content-section { max-width: 800px; margin: 60px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
         .content-section h2 { color: var(--accent); border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 40px; }
-        .policy-section { max-width: 850px; margin: 80px auto 0; text-align: left; padding: 30px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; }
+        .policy-section { max-width: 800px; margin: 80px auto 0; text-align: left; padding: 30px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; }
+        .policy-section h2 { color: #f8fafc; font-size: 1.1rem; border-left: 4px solid var(--accent); padding-left: 10px; margin-bottom: 15px; }
         .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; }
     </style>
 </head>
@@ -87,7 +89,7 @@ HTML_PAGE = """
 
     <div class="content-section">
         <h2>なぜMIDIヒューマナイズが必要なのか？</h2>
-        <p>完璧すぎるリズムと一定の音量は、楽曲に機械的な印象を与えます。本ツールは、人間が演奏した際に生じる微細な「ズレ」をシミュレートし、自然なグルーヴを付加します。</p>
+        <p>完璧すぎるリズムと一定の音量は、楽曲に機械的な印象を与えます。本ツールは、人間が演奏した際に生じる微細な「ズレ」をシミュレートし、楽曲に自然なグルーヴを付加します。</p>
         <h3>ビジュアル・プレビュー</h3>
         <p>上段にはノートの音程、下段にはベロシティを表示。設定を動かすと、ノートが左右に揺れ、音量が上下する様子をリアルタイムに確認できます。</p>
     </div>
@@ -95,7 +97,7 @@ HTML_PAGE = """
     <div class="policy-section">
         <h2>プライバシーポリシー</h2>
         <p><strong>データ処理：</strong>アップロードされたファイルはメモリ内で即座に処理され、保存されません。プライバシーは完全に守られます。</p>
-        <p><strong>広告配信：</strong>Google AdSense等により広告を配信する場合があります。</p>
+        <p><strong>広告配信：</strong>当サイトではGoogle AdSense等により広告を配信する場合があります。</p>
     </div>
     <div class="footer-copy">&copy; 2026 MIDI Humanizer. All rights reserved.</div>
 
@@ -105,7 +107,7 @@ HTML_PAGE = """
         const ctx = canvas.getContext('2d');
         const vRangeInput = document.getElementById('v_range');
         const tPercentInput = document.getElementById('t_percent');
-        let notes = []; // {pitch, vel, randomV, randomT}
+        let notes = [];
 
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
@@ -120,8 +122,8 @@ HTML_PAGE = """
                     if (vel > 0) {
                         notes.push({
                             pitch, vel,
-                            randomV: Math.random() * 2 - 1, // -1 to 1
-                            randomT: Math.random() * 2 - 1  // -1 to 1
+                            randomV: Math.random() * 2 - 1,
+                            randomT: Math.random() * 2 - 1
                         });
                     }
                 }
@@ -144,22 +146,19 @@ HTML_PAGE = """
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const vRange = parseInt(vRangeInput.value);
-            const tRange = parseInt(tPercentInput.value) * 0.5; // 可視化用に調整
+            const tRange = parseInt(tPercentInput.value) * 0.5;
 
             notes.forEach((n, i) => {
-                // タイミングのズレをX軸に反映
                 const offsetX = n.randomT * tRange;
                 const xOrig = i * barWidth;
                 const xNew = xOrig + offsetX;
                 
-                // 上段: ピアノロール
                 const yPitch = pianoRollHeight - (n.pitch / 127) * pianoRollHeight;
                 ctx.fillStyle = '#334155';
-                ctx.fillRect(xOrig, yPitch, barWidth - 2, 4); // 元の位置
+                ctx.fillRect(xOrig, yPitch, barWidth - 2, 4);
                 ctx.fillStyle = '#00e676';
-                ctx.fillRect(xNew, yPitch, barWidth - 2, 4);  // ズレた位置
+                ctx.fillRect(xNew, yPitch, barWidth - 2, 4);
 
-                // 下段: ベロシティ
                 const laneBaseY = canvas.height;
                 const hOrig = (n.vel / 127) * velocityLaneHeight;
                 ctx.fillStyle = '#475569';
@@ -172,7 +171,6 @@ HTML_PAGE = """
             });
 
             ctx.strokeStyle = '#334155';
-            ctx.setLineDash([]);
             ctx.beginPath(); ctx.moveTo(0, pianoRollHeight); ctx.lineTo(canvas.width, pianoRollHeight); ctx.stroke();
         }
     </script>
@@ -180,7 +178,7 @@ HTML_PAGE = """
 </html>
 """
 
-# --- サーバーサイド処理 ---
+# (Flaskロジック部分は同一のため、現在の app.py の後半部分を維持してください)
 def process_midi_logic(midi_file_stream, v_range, t_percent):
     midi_file_stream.seek(0)
     input_data = io.BytesIO(midi_file_stream.read())
@@ -243,7 +241,7 @@ def index():
 
 @app.route('/process', methods=['POST'])
 def process():
-    file = request.files.get('midi_file')
+    file = request.files['midi_file']
     v_range = int(request.form.get('v_range', 20))
     t_percent = int(request.form.get('t_percent', 5))
     processed_midi = process_midi_logic(file, v_range, t_percent)
