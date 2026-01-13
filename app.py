@@ -52,7 +52,7 @@ HTML_PAGE = """
             </div>
             <button type="submit">PROCESS & DOWNLOAD</button>
         </form>
-        <div class="link-box">音量を平均化したいですか？<br><a href="https://midi-normalizer.onrender.com/">→ MIDI Normalizer を使う</a></div>
+        <div class="link-box">ノーマライズはこちら<br><a href="https://midi-normalizer.onrender.com/">→ MIDI Normalizer を使う</a></div>
     </div>
     <div class="content-section">
         <h2>なぜMIDIヒューマナイズが必要なのか？</h2>
