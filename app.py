@@ -15,7 +15,7 @@ HTML_PAGE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIDI Humanizer Pro | DAW用高精度リズム揺らぎ付加ツール</title>
+    <title>MIDI Humanizer | DAW用高精度リズム揺らぎ付加ツール</title>
     <meta name="description" content="DAWの打ち込みに自然な人間味を与えるMIDI処理ツール。独自のスマート・クリッピング・ロジックにより、音切れを防ぎつつ音楽的なグルーヴを付加します。">
     
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4758959657594096"
