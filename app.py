@@ -72,11 +72,11 @@ HTML_PAGE = """
         <p>タイミングをずらした結果、次のノートと重なってしまった場合、本ツールは先行するノートの長さを自動的に調整し、音切れや不自然な発音停止を防ぎます。</p>
 
         <div class="tips">
-            <h3>推奨設定ガイド</h3>
+            <h3>推奨設定ガイド(曲のテンポによって効果は変化します)</h3>
             <ul>
-                <li><strong>Kick / Snare:</strong> タイミング 2-3%, ベロシティ 15-20%</li>
-                <li><strong>Hi-Hats / Percussion:</strong> タイミング 4-6%, ベロシティ 25-35%</li>
-                <li><strong>Electric Piano / Guitar:</strong> タイミング 3-5%, ベロシティ 20-30%</li>
+                <li><strong>Kick / Snare:</strong> タイミング 2-3%, ベロシティ 15-20</li>
+                <li><strong>Hi-Hats / Percussion:</strong> タイミング 4-6%, ベロシティ 25-35</li>
+                <li><strong>Electric Piano / Guitar:</strong> タイミング 3-5%, ベロシティ 20-30</li>
             </ul>
         </div>
     </div>
