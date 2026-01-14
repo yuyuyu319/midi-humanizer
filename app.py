@@ -14,7 +14,7 @@ HTML_PAGE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIDI Toolkit Pro | DAW用オールインワンMIDI処理ツール</title>
+    <title>MIDI Toolkit | DAW用オールインワンMIDI処理ツール</title>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4758959657594096" crossorigin="anonymous"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent-green: #00e676; --accent-blue: #00b0ff; --accent-orange: #ff9100; --accent-purple: #d500f9; --accent-red: #ff5252; }
@@ -133,7 +133,7 @@ HTML_PAGE = """
             <p>本ツールはまず全体の平均値を算出し、指定した圧縮率で各ノートを平均に近づけます。その後、指定された目標値がある場合は、平均値との差分を全ノートに適用します。これにより、音楽的なニュアンスを破壊することなく、確実な音量コントロールが可能です。</p>
         </div>
         <div id="limiter-info" class="info-panel">
-            <h2 style="color: var(--accent-orange)">MIDIリミッターが必要な理由</h2>
+            <h2 style="color: var(--accent-orange)">MIDIリミッターのメリット</h2>
             <p>強すぎる音を抑え、弱すぎる音を底上げすることで、音源ソフトのポテンシャルを最大限に引き出し、ミックスを安定させます。ベロシティが最大値（127）に達した際の不自然な音色変化を防ぐのにも有効です。</p>
         </div>
         <div id="compressor-info" class="info-panel">
@@ -141,7 +141,7 @@ HTML_PAGE = """
             <p>オーディオ用のコンプレッサーと同様に、スレッショルドを超えたベロシティをレシオに基づいて圧縮します。リミッターが上限で強制的に切るのに対し、コンプレッサーは超過分を「比率」で減衰させるため、演奏のニュアンスを保ったままピークを自然に抑えることができます。</p>
         </div>
         <div id="expander-info" class="info-panel">
-            <h2 style="color: var(--accent-red)">MIDIエキスパンダーの活用法</h2>
+            <h2 style="color: var(--accent-red)">MIDIエキスパンダーのメリット</h2>
             <p>エキスパンダーはコンプレッサーの逆の働きをします。スレッショルド値を下回る微細な音をレシオに基づいてさらに減衰させることで、アクセントの付いた音を際立たせ、トラックに「キレ」と「メリハリ」を与えます。</p>
         </div>
     </div>
@@ -151,7 +151,7 @@ HTML_PAGE = """
         <p><strong>データ処理：</strong>アップロードされたMIDIファイルはサーバーに保存されず、メモリ内で即座に処理・返送されます。プライバシーは完全に守られます。</p>
         <p><strong>広告配信：</strong>当サイトではGoogle AdSense等の第三者配信事業者がCookieを利用して広告を配信する場合があります。</p>
     </div>
-    <div class="footer-copy">&copy; 2026 MIDI Toolkit Pro. All rights reserved.</div>
+    <div class="footer-copy">&copy; 2026 MIDI Toolkit. All rights reserved.</div>
 
     <script>
         const fileInput = document.getElementById('file-input');
