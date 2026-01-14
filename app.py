@@ -7,7 +7,7 @@ from flask import Flask, request, send_file, make_response
 
 app = Flask(__name__)
 
-# --- 統合HTMLページ（タブ切り替えUI） ---
+# --- デザイン & コンテンツ & タブ連動HTML ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
@@ -30,8 +30,8 @@ HTML_PAGE = """
         .tab-btn.active.compressor { background: var(--accent-purple); color: white; border-color: var(--accent-purple); }
         .tab-btn.active.expander { background: var(--accent-red); color: white; border-color: var(--accent-red); }
 
-        .tool-panel { display: none; }
-        .tool-panel.active { display: block; }
+        .tool-panel, .info-panel { display: none; }
+        .tool-panel.active, .info-panel.active { display: block; }
         
         h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 800; }
         .subtitle { color: #94a3b8; margin-bottom: 30px; font-size: 1.1rem; }
@@ -50,7 +50,9 @@ HTML_PAGE = """
         .legend-item span { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; }
 
         .content-section { max-width: 850px; margin: 60px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
+        .content-section h2 { border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 40px; }
         .policy-section { max-width: 850px; margin: 80px auto 0; text-align: left; padding: 30px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; }
+        .policy-section h2 { color: #f8fafc; font-size: 1.1rem; border-left: 4px solid var(--accent-blue); padding-left: 10px; margin-bottom: 15px; }
         .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; }
     </style>
 </head>
@@ -73,89 +75,75 @@ HTML_PAGE = """
 
             <div id="humanizer-panel" class="tool-panel active">
                 <h1 style="color: var(--accent-green)">MIDI Humanizer</h1>
-                <p class="subtitle">自然なリズムの揺らぎと強弱を付加</p>
-                <div class="form-group">
-                    <label>ベロシティ揺れ幅 (± 0-50)</label>
-                    <input type="number" name="h_v_range" id="h_v_range" value="20" min="0" max="50">
-                </div>
-                <div class="form-group">
-                    <label>タイミング揺れ幅 (%)</label>
-                    <input type="number" name="h_t_percent" id="h_t_percent" value="5" min="0" max="20">
-                </div>
+                <p class="subtitle">計算された音楽的な「揺らぎ」を打ち込みに。</p>
+                <div class="form-group"><label>ベロシティ揺れ幅 (± 0-50)</label><input type="number" name="h_v_range" id="h_v_range" value="20"></div>
+                <div class="form-group"><label>タイミング揺れ幅 (%)</label><input type="number" name="h_t_percent" id="h_t_percent" value="5"></div>
                 <button type="submit" class="process-btn" style="background: var(--accent-green); color: black;">HUMANIZE & DOWNLOAD</button>
             </div>
 
             <div id="normalizer-panel" class="tool-panel">
                 <h1 style="color: var(--accent-blue)">MIDI Normalizer</h1>
-                <p class="subtitle">全体の音量を平均化しシフト調整</p>
-                <div class="form-group">
-                    <label><input type="checkbox" name="n_use_target" id="n_use_target" checked> 目標値を指定</label>
-                    <input type="number" name="n_target_v" id="n_target_v" value="80">
-                </div>
-                <div class="form-group">
-                    <label>圧縮率 (%)</label>
-                    <input type="number" name="n_norm_rate" id="n_norm_rate" value="50">
-                </div>
+                <p class="subtitle">バラつきを抑え、狙ったダイナミクスへ調整する。</p>
+                <div class="form-group" style="text-align: center;"><label style="cursor:pointer;"><input type="checkbox" name="n_use_target" id="n_use_target" checked> 目標ベロシティを指定</label><input type="number" name="n_target_v" id="n_target_v" value="80"></div>
+                <div class="form-group"><label>圧縮率 (%)</label><input type="number" name="n_norm_rate" id="n_norm_rate" value="50"></div>
                 <button type="submit" class="process-btn" style="background: var(--accent-blue); color: white;">NORMALIZE & DOWNLOAD</button>
             </div>
 
             <div id="limiter-panel" class="tool-panel">
                 <h1 style="color: var(--accent-orange)">MIDI Limiter</h1>
-                <p class="subtitle">ベロシティを一定範囲内に制限</p>
-                <div class="form-group">
-                    <label>最小値 (Min)</label>
-                    <input type="number" name="l_min" id="l_min" value="40">
-                </div>
-                <div class="form-group">
-                    <label>最大値 (Max)</label>
-                    <input type="number" name="l_max" id="l_max" value="100">
-                </div>
+                <p class="subtitle">ベロシティを一定範囲内に制限する。</p>
+                <div class="form-group"><label>最小値 (Min)</label><input type="number" name="l_min" id="l_min" value="40"></div>
+                <div class="form-group"><label>最大値 (Max)</label><input type="number" name="l_max" id="l_max" value="100"></div>
                 <button type="submit" class="process-btn" style="background: var(--accent-orange); color: white;">LIMIT & DOWNLOAD</button>
             </div>
 
             <div id="compressor-panel" class="tool-panel">
                 <h1 style="color: var(--accent-purple)">MIDI Compressor</h1>
-                <p class="subtitle">ピーク音を比率で圧縮</p>
-                <div class="form-group">
-                    <label>スレッショルド (1-127)</label>
-                    <input type="number" name="c_thresh" id="c_thresh" value="80">
-                </div>
-                <div class="form-group">
-                    <label>レシオ (1.0-10.0)</label>
-                    <input type="number" name="c_ratio" id="c_ratio" value="2.0" step="0.1">
-                </div>
+                <p class="subtitle">大きい音を抑え、ダイナミクスを凝縮する。</p>
+                <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="c_thresh" id="c_thresh" value="80"></div>
+                <div class="form-group"><label>レシオ (比率 1.0-10.0)</label><input type="number" name="c_ratio" id="c_ratio" value="2.0" step="0.1"></div>
                 <button type="submit" class="process-btn" style="background: var(--accent-purple); color: white;">COMPRESS & DOWNLOAD</button>
             </div>
 
             <div id="expander-panel" class="tool-panel">
                 <h1 style="color: var(--accent-red)">MIDI Expander</h1>
-                <p class="subtitle">小さい音をさらに減衰させメリハリを出す</p>
-                <div class="form-group">
-                    <label>スレッショルド (1-127)</label>
-                    <input type="number" name="e_thresh" id="e_thresh" value="60">
-                </div>
-                <div class="form-group">
-                    <label>レシオ (1.0-10.0)</label>
-                    <input type="number" name="e_ratio" id="e_ratio" value="1.5" step="0.1">
-                </div>
+                <p class="subtitle">小さい音をさらに下げ、メリハリを出す。</p>
+                <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="e_thresh" id="e_thresh" value="60"></div>
+                <div class="form-group"><label>レシオ (比率 1.0-10.0)</label><input type="number" name="e_ratio" id="e_ratio" value="1.5" step="0.1"></div>
                 <button type="submit" class="process-btn" style="background: var(--accent-red); color: white;">EXPAND & DOWNLOAD</button>
             </div>
 
             <div id="preview-container">
                 <div class="legend">
-                    <div class="legend-item"><span style="background: #475569;"></span>元のデータ</div>
+                    <div class="legend-item"><span style="background: #475569;"></span>元の値</div>
                     <div class="legend-item"><span id="legend-after-color" style="background: var(--accent-green);"></span>処理後</div>
                 </div>
-                <div class="scroll-wrapper" id="scroll-wrapper">
-                    <canvas id="piano-roll-canvas"></canvas>
-                </div>
+                <div class="scroll-wrapper" id="scroll-wrapper"><canvas id="piano-roll-canvas"></canvas></div>
             </div>
         </form>
     </div>
 
     <div class="content-section">
-        <h2>MIDI Toolkit Pro の使い方</h2>
-        <p>上部のタブでツールを切り替え、MIDIファイルをアップロードしてください。リアルタイムプレビューで結果を確認しながら数値を調整し、ダウンロードボタンで処理済みファイルを保存できます。</p>
+        <div id="humanizer-info" class="info-panel active">
+            <h2 style="color: var(--accent-green)">MIDIヒューマナイザーのメリット</h2>
+            <p>グリッドに完璧に沿ったリズムと一定の音量は、楽曲に機械的な印象を与えます。本ツールは、人間が実際に演奏した際に生じる微細な「強弱のムラ」と「タイミングのズレ」をシミュレートし、トラックに自然なグルーヴと生命力を付加します。</p>
+        </div>
+        <div id="normalizer-info" class="info-panel">
+            <h2 style="color: var(--accent-blue)">MIDIノーマライザーのメリット</h2>
+            <p>本ツールはまず全体の平均値を算出し、指定した圧縮率で各ノートを平均に近づけます。その後、指定された目標値がある場合は、平均値との差分を全ノートに適用します。これにより、音楽的なニュアンスを破壊することなく、確実な音量コントロールが可能です。</p>
+        </div>
+        <div id="limiter-info" class="info-panel">
+            <h2 style="color: var(--accent-orange)">MIDIリミッターが必要な理由</h2>
+            <p>強すぎる音を抑え、弱すぎる音を底上げすることで、音源ソフトのポテンシャルを最大限に引き出し、ミックスを安定させます。ベロシティが最大値（127）に達した際の不自然な音色変化を防ぐのにも有効です。</p>
+        </div>
+        <div id="compressor-info" class="info-panel">
+            <h2 style="color: var(--accent-purple)">MIDIコンプレッサーのメリット</h2>
+            <p>オーディオ用のコンプレッサーと同様に、スレッショルドを超えたベロシティをレシオに基づいて圧縮します。リミッターが上限で強制的に切るのに対し、コンプレッサーは超過分を「比率」で減衰させるため、演奏のニュアンスを保ったままピークを自然に抑えることができます。</p>
+        </div>
+        <div id="expander-info" class="info-panel">
+            <h2 style="color: var(--accent-red)">MIDIエキスパンダーの活用法</h2>
+            <p>エキスパンダーはコンプレッサーの逆の働きをします。スレッショルド値を下回る微細な音をレシオに基づいてさらに減衰させることで、アクセントの付いた音を際立たせ、トラックに「キレ」と「メリハリ」を与えます。</p>
+        </div>
     </div>
 
     <div class="policy-section">
@@ -175,8 +163,11 @@ HTML_PAGE = """
         function switchTab(type) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.info-panel').forEach(p => p.classList.remove('active'));
+            
             document.querySelector('.tab-btn.' + type).classList.add('active');
             document.getElementById(type + '-panel').classList.add('active');
+            document.getElementById(type + '-info').classList.add('active');
             toolTypeInput.value = type;
             
             const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
@@ -214,9 +205,7 @@ HTML_PAGE = """
             const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
             
             notes.forEach((n, i) => {
-                let newV = n.vel;
-                let offsetX = 0;
-
+                let newV = n.vel; let offsetX = 0;
                 if (type === 'humanizer') {
                     newV += n.rV * parseInt(document.getElementById('h_v_range').value);
                     offsetX = n.rT * parseInt(document.getElementById('h_t_percent').value) * 0.5;
@@ -228,7 +217,7 @@ HTML_PAGE = """
                 } else if (type === 'limiter') {
                     const min = parseInt(document.getElementById('l_min').value);
                     const max = parseInt(document.getElementById('l_max').value);
-                    if (newV < min) newV = min; if (newV > max) newV = max;
+                    newV = Math.max(min, Math.min(max, newV));
                 } else if (type === 'compressor') {
                     const th = parseInt(document.getElementById('c_thresh').value);
                     const ra = parseFloat(document.getElementById('c_ratio').value);
@@ -239,14 +228,13 @@ HTML_PAGE = """
                     if (newV < th) newV = th - (th - newV) * ra;
                 }
                 newV = Math.max(1, Math.min(127, newV));
-
                 const x = i * barWidth;
                 ctx.fillStyle = '#334155'; ctx.fillRect(x, pianoRollHeight - (n.pitch/127)*pianoRollHeight, barWidth-2, 4);
                 ctx.fillStyle = colors[type]; ctx.fillRect(x + offsetX, pianoRollHeight - (n.pitch/127)*pianoRollHeight, barWidth-2, 4);
-
                 ctx.fillStyle = '#475569'; ctx.fillRect(x, canvas.height - (n.vel/127)*velocityLaneHeight, barWidth-2, (n.vel/127)*velocityLaneHeight);
                 ctx.fillStyle = colors[type]; ctx.fillRect(x + offsetX, canvas.height - (newV/127)*velocityLaneHeight, barWidth-2, (newV/127)*velocityLaneHeight);
             });
+            ctx.strokeStyle = '#334155'; ctx.beginPath(); ctx.moveTo(0, pianoRollHeight); ctx.lineTo(canvas.width, pianoRollHeight); ctx.stroke();
         }
     </script>
 </body>
@@ -276,7 +264,6 @@ def process():
             for msg in track:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     msg.velocity = max(1, min(127, msg.velocity + random.randint(-v_range, v_range)))
-                    # タイミングは簡易実装(メッセージごとのtimeにランダム加算)
                     msg.time = max(0, msg.time + random.randint(-max_tick_shift, max_tick_shift))
     
     elif tool == 'normalizer':
