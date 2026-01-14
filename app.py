@@ -8,7 +8,6 @@ from flask import Flask, request, send_file, make_response
 app = Flask(__name__)
 
 # --- デザイン & コンテンツ & ピアノロールプレビュー統合HTML ---
-# 見た目の数値、余白、文言の構成をすべてCompressor版と一致させています
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
@@ -16,7 +15,7 @@ HTML_PAGE = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIDI Humanizer | ピアノロール・プレビュー付リズム揺らぎ付加ツール</title>
-    <meta name="description" content="DAWの打ち込みに自然な人間味を与えるMIDI処理ツール。独自のスマート・クリッピング・ロジックにより、音切れを防ぎつつ音楽的なグルーヴを付加します。">
+    <meta name="description" content="DAWの打ち込みに自然な人間味を与えるMIDI処理ツール。強弱とタイミングに微細なランダム性を加え、機械的な印象を解消します。">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4758959657594096" crossorigin="anonymous"></script>
     <style>
         :root { --accent: #00e676; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
@@ -88,10 +87,8 @@ HTML_PAGE = """
     </div>
 
     <div class="content-section">
-        <h2>なぜMIDIヒューマナイズが必要なのか？</h2>
-        <p>完璧すぎるリズムと一定の音量は、楽曲に機械的な印象を与えます。本ツールは、人間が演奏した際に生じる微細な「ズレ」をシミュレートし、楽曲に自然なグルーヴと深みを与えます。</p>
-        <h3>スマート・クリッピング・ロジック</h3>
-        <p>タイミングをずらした結果、次のノートと重なってしまった場合、本ツールは先行するノートの長さを自動調整し、不自然な発音停止を防ぎます。</p>
+        <h2>MIDIヒューマナイザーのメリット</h2>
+        <p>グリッドに完璧に沿ったリズムと一定の音量は、楽曲に機械的な印象を与えます。本ツールは、人間が実際に演奏した際に生じる微細な「強弱のムラ」と「タイミングのズレ」をシミュレートし、トラックに自然なグルーヴと生命力を付加します。</p>
     </div>
 
     <div class="policy-section">
