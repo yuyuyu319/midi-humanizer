@@ -14,7 +14,7 @@ HTML_PAGE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1100">
-    <title>MIDI Tools - Piano Roll Processor</title>
+    <title>MIDI Tools - Piano Roll Dynamics</title>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent-green: #00e676; --accent-blue: #00b0ff; --accent-orange: #ff9100; --accent-purple: #d500f9; --accent-red: #ff5252; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin:0; line-height: 1.6; }
@@ -41,26 +41,27 @@ HTML_PAGE = """
         .small-ad-row img { border-radius: 4px; border: 1px solid #334155; }
         .a8-ad-container { margin: 20px auto; text-align: center; }
         .a8-ad-container img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #334155; }
+
+        /* --- ピアノロール & ベロシティビュー --- */
+        #preview-container { margin-top: 30px; display: none; }
+        .piano-roll-container { 
+            display: flex; 
+            height: 450px; 
+            background: #020617; 
+            border: 2px solid #334155; 
+            border-radius: 12px; 
+            overflow: hidden; 
+        }
+        .key-labels { width: 60px; height: 100%; background: #1e293b; border-right: 1px solid #334155; overflow: hidden; position: relative; flex-shrink: 0; }
+        .key-label { height: 12px; font-size: 9px; color: #94a3b8; border-bottom: 1px solid #0f172a; text-align: center; line-height: 12px; box-sizing: border-box; }
+        .key-label.black { background: #000; color: #eee; }
+        .scroll-area { flex-grow: 1; overflow: auto; position: relative; }
+        canvas { display: block; }
+        
         .content-section { margin: 40px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
-        .content-section h2 { border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 0; }
         .policy-section { margin: 60px auto 0; text-align: left; padding: 40px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; background: #0f172a; border-radius: 0 0 24px 24px; }
         .policy-section h2 { color: #f8fafc; font-size: 1.2rem; border-left: 4px solid var(--accent-blue); padding-left: 10px; margin-bottom: 15px; }
         .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; text-align: center; }
-        
-        /* --- 本格ピアノロールビュー --- */
-        #preview-container { margin-top: 30px; display: none; }
-        .piano-roll-wrapper { 
-            width: 100%; 
-            height: 400px; /* 縦スクロール用 */
-            overflow: auto; 
-            background: #020617; 
-            border: 2px solid #334155; 
-            border-radius: 12px;
-            position: relative;
-        }
-        canvas { display: block; background-size: 40px 40px; background-image: linear-gradient(to right, #1e293b 1px, transparent 1px), linear-gradient(to bottom, #1e293b 1px, transparent 1px); }
-        .legend { display: flex; justify-content: center; gap: 20px; font-size: 0.8rem; margin-bottom: 10px; color: #94a3b8; }
-        .legend-item span { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -90,7 +91,7 @@ HTML_PAGE = """
                     <div class="form-group"><label>タイミング揺れ幅 (%)</label><input type="number" name="h_t_percent" id="h_t_percent" value="5" min="0" max="20" oninput="draw()"></div>
                 </div>
                 <div id="normalizer-panel" class="tool-panel">
-                    <h1>Normalizer</h1><p class="subtitle">平均化と目標値への調整</p>
+                    <h1>Normalizer</h1><p class="subtitle">全体の平均化と目標値への調整</p>
                     <div class="form-group" style="text-align: center;"><label><input type="checkbox" name="n_use_target" id="n_use_target" checked onchange="draw()"> 目標値を指定</label><input type="number" name="n_target_v" id="n_target_v" value="80" min="1" max="127" oninput="draw()"></div>
                     <div class="form-group"><label>圧縮率 (%)</label><input type="number" name="n_norm_rate" id="n_norm_rate" value="50" min="0" max="100" oninput="draw()"></div>
                 </div>
@@ -124,33 +125,31 @@ HTML_PAGE = """
 
                 <div id="preview-container">
                     <div class="legend">
-                        <div class="legend-item"><span style="background: rgba(255,255,255,0.2); border: 1px solid #475569;"></span>元のノート</div>
-                        <div class="legend-item"><span id="legend-after-color" style="background: var(--accent-green);"></span>処理後（●は先端）</div>
+                        <div class="legend-item"><span style="background: rgba(255,255,255,0.2); border: 1px solid #475569;"></span>元の値</div>
+                        <div class="legend-item"><span id="legend-after-color" style="background: var(--accent-green);"></span>処理後 (●は重なり対策)</div>
                     </div>
-                    <div class="piano-roll-wrapper" id="piano-roll-wrapper">
-                        <canvas id="piano-roll-canvas"></canvas>
+                    <div class="piano-roll-container">
+                        <div class="key-labels" id="key-labels"></div>
+                        <div class="scroll-area" id="piano-scroll">
+                            <canvas id="piano-roll-canvas"></canvas>
+                        </div>
                     </div>
                 </div>
             </form>
         </div>
 
         <div class="content-section">
-            <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なリズムのズレとベロシティの揺らぎを加え、生命感を生成します。</p></div>
-            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、ダイナミクスを平均化します。</p></div>
-            <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを安全な範囲に制限し、音源の鳴りを安定させます。</p></div>
-            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、演奏のニュアンスを守りつつピークを抑制します。</p></div>
-            <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、トラック全体のメリハリを強調します。</p></div>
-        </div>
+            <div id="humanizer-info" class="info-panel active"><h2>Humanizer</h2><p>機械的な打ち込みに人間らしい揺らぎを加えます。</p></div>
+            <div id="normalizer-info" class="info-panel"><h2>Normalizer</h2><p>全体のダイナミクスを均一化します。</p></div>
+            </div>
 
         <div style="margin: 20px auto; text-align: center; opacity: 0.5;">
             <script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script>
         </div>
 
         <div class="policy-section">
-            <h2>プライバシーポリシー・利用規約</h2>
-            <h3>1. データの取り扱い</h3><p>アップロードされたMIDIファイルはサーバー内の一次メモリ上で即座に処理されます。ストレージへの保存は行われず、処理完了後に完全に消去されます。</p>
-            <h3>2. 広告とCookie</h3><p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。</p>
-            <h3>3. 免責事項</h3><p>利用者は自らが正当な権利を有するMIDIデータのみをアップロードするものとします。いかなる不利益についても当サイト管理者は責任を負いません。</p>
+            <h2>プライバシーポリシー</h2>
+            <p>サーバーにMIDIデータは保存されません。第三者配信広告がCookieを使用することがあります。</p>
         </div>
         <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
     </main>
@@ -164,7 +163,18 @@ HTML_PAGE = """
     const toolTypeInput = document.getElementById('tool_type');
     const canvas = document.getElementById('piano-roll-canvas');
     const ctx = canvas.getContext('2d');
+    const keyLabels = document.getElementById('key-labels');
+    const scrollArea = document.getElementById('piano-scroll');
     let notes = [];
+
+    // 左端の鍵盤ラベル生成
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    for(let i=127; i>=0; i--) {
+        const div = document.createElement('div');
+        div.className = 'key-label' + (noteNames[i % 12].includes('#') ? ' black' : '');
+        div.innerText = noteNames[i % 12] + Math.floor(i / 12 - 1);
+        keyLabels.appendChild(div);
+    }
 
     function switchTab(type) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -188,30 +198,19 @@ HTML_PAGE = """
         const buffer = await file.arrayBuffer();
         const view = new DataView(buffer);
         notes = [];
-        let currentTime = 0;
-        // 簡易解析（Note ONのみ抽出）
         for (let i = 0; i < view.byteLength - 3; i++) {
-            const byte = view.getUint8(i);
-            if ((byte & 0xF0) === 0x90) {
+            if ((view.getUint8(i) & 0xF0) === 0x90) {
                 const pitch = view.getUint8(i + 1);
                 const vel = view.getUint8(i + 2);
-                if (vel > 0) {
-                    notes.push({ 
-                        pitch, vel, 
-                        time: i, // 位置特定用 
-                        rV: Math.random()*2-1, 
-                        rT: Math.random()*2-1 
-                    });
-                }
+                if (vel > 0) notes.push({ pitch, vel, rV: Math.random()*2-1, rT: Math.random()*2-1 });
             }
         }
         document.getElementById('preview-container').style.display = 'block';
         
-        // 読込後、ノートの範囲へ自動スクロール
+        // 読込後、中央音域へスクロール
         setTimeout(() => {
-            const avgPitch = notes.reduce((s, n) => s + n.pitch, 0) / notes.length;
-            const scrollPos = (127 - avgPitch) * 12 - 200;
-            document.getElementById('piano-roll-wrapper').scrollTop = scrollPos;
+            const avg = notes.length ? notes.reduce((s,n)=>s+n.pitch, 0)/notes.length : 60;
+            scrollArea.scrollTop = (127 - avg) * 12 - 150;
         }, 50);
         draw();
     });
@@ -219,12 +218,9 @@ HTML_PAGE = """
     function draw() {
         if (notes.length === 0) return;
         const type = toolTypeInput.value;
-        const rowHeight = 12; // 1半音の高さ
-        const noteWidth = 30; // ノートの横幅
-        const padding = 50;
-
-        canvas.width = Math.max(700, notes.length * 40);
-        canvas.height = 128 * rowHeight; // 全音域を表示
+        const rowH = 12; const noteW = 40; const velH = 80;
+        canvas.width = Math.max(640, notes.length * noteW + 100);
+        canvas.height = (128 * rowH) + velH + 20;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
@@ -253,25 +249,29 @@ HTML_PAGE = """
             }
             newV = Math.max(1, Math.min(127, newV));
 
-            const x = i * 40 + padding;
-            const y = (127 - n.pitch) * rowHeight;
+            const x = i * noteW + 20;
+            const y = (127 - n.pitch) * rowH;
+            const vY = (128 * rowH) + 20;
 
-            // 元のノート（背景として薄く表示）
-            ctx.fillStyle = "rgba(255,255,255,0.1)";
-            ctx.fillRect(x, y, noteWidth, rowHeight - 1);
-
-            // 処理後のノート
-            ctx.fillStyle = activeColor;
-            ctx.globalAlpha = newV / 127; // 強弱を透明度で表現
-            ctx.fillRect(x + offsetX, y, noteWidth, rowHeight - 1);
+            // ピアノロール描画
+            ctx.fillStyle = "rgba(255,255,255,0.1)"; ctx.fillRect(x, y, noteW - 2, rowH - 1);
+            ctx.fillStyle = activeColor; ctx.globalAlpha = newV / 127;
+            ctx.fillRect(x + offsetX, y, noteW - 2, rowH - 1);
             ctx.globalAlpha = 1.0;
+            ctx.beginPath(); ctx.arc(x + offsetX + (noteW/2), y + (rowH/2), 3, 0, Math.PI*2); ctx.fill();
 
-            // 重なり対策：先端にベロシティの大きさを表す円形を描画
-            ctx.beginPath();
-            ctx.arc(x + offsetX + noteWidth, y + (rowHeight/2), (newV/127) * 5 + 2, 0, Math.PI * 2);
-            ctx.fill();
+            // 下部ベロシティバー描画
+            const hOrig = (n.vel / 127) * velH;
+            const hNew = (newV / 127) * velH;
+            ctx.fillStyle = "#475569"; ctx.fillRect(x, canvas.height - hOrig, 4, hOrig);
+            ctx.fillStyle = activeColor; ctx.fillRect(x + offsetX + 4, canvas.height - hNew, 4, hNew);
         });
+
+        // ピアノロールとベロシティの境界線
+        ctx.strokeStyle = "#334155"; ctx.beginPath(); ctx.moveTo(0, 128*rowH); ctx.lineTo(canvas.width, 128*rowH); ctx.stroke();
     }
+    // 同時スクロール
+    scrollArea.onscroll = () => { keyLabels.scrollTop = scrollArea.scrollTop; };
 </script>
 </body>
 </html>
@@ -312,22 +312,19 @@ def process():
                         fv = cv + (target_v - avg_v) if use_target else cv
                         msg.velocity = max(1, min(127, int(fv)))
     elif tool == 'limiter':
-        min_v = max(1, int(request.form.get('l_min', 40)))
-        max_v = max(1, int(request.form.get('l_max', 100)))
+        min_v, max_v = int(request.form.get('l_min', 40)), int(request.form.get('l_max', 100))
         for track in mid.tracks:
             for msg in track:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     msg.velocity = max(min_v, min(max_v, msg.velocity))
     elif tool == 'compressor':
-        th = max(1, int(request.form.get('c_thresh', 80)))
-        ra = max(1.0, float(request.form.get('c_ratio', 2.0)))
+        th, ra = int(request.form.get('c_thresh', 80)), float(request.form.get('c_ratio', 2.0))
         for track in mid.tracks:
             for msg in track:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     if msg.velocity > th: msg.velocity = int(th + (msg.velocity - th) / ra)
     elif tool == 'expander':
-        th = max(1, int(request.form.get('e_thresh', 60)))
-        ra = max(1.0, float(request.form.get('e_ratio', 1.5)))
+        th, ra = int(request.form.get('e_thresh', 60)), float(request.form.get('e_ratio', 1.5))
         for track in mid.tracks:
             for msg in track:
                 if msg.type == 'note_on' and msg.velocity > 0:
