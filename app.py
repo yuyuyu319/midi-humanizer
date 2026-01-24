@@ -1,13 +1,4 @@
-import os
-import io
-import time
-import random
-import mido
-from flask import Flask, request, send_file, make_response
-
-app = Flask(__name__)
-
-# --- デザイン & コンテンツ & 左右・中央広告実装HTML ---
+# --- デザイン & コンテンツ & 広告再配置HTML ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
@@ -19,14 +10,10 @@ HTML_PAGE = """
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent-green: #00e676; --accent-blue: #00b0ff; --accent-orange: #ff9100; --accent-purple: #d500f9; --accent-red: #ff5252; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; margin:0; line-height: 1.6; }
         
-        /* 全体を包むコンテナ（Flexboxで左右サイドバーを実現） */
+        /* 全体レイアウト */
         .page-wrapper { display: flex; justify-content: center; gap: 20px; padding: 40px 10px; max-width: 1600px; margin: 0 auto; }
-        
-        /* 左右サイドバーの定義 */
         .side-ad-left { width: 240px; min-width: 240px; }
         .side-ad-right { width: 120px; min-width: 120px; }
-        
-        /* メインコンテンツエリア */
         .main-content { flex: 1; max-width: 850px; min-width: 320px; }
 
         .card { background: var(--card); padding: 40px; border-radius: 24px; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
@@ -49,12 +36,14 @@ HTML_PAGE = """
         button.process-btn { border: none; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; font-size: 1.1rem; margin: 10px auto; display: block; transition: 0.2s; }
         button.process-btn:hover { transform: translateY(-2px); opacity: 0.9; }
 
-        /* ボタン下のダブルバナー横並び */
-        .double-ad-row { display: flex; justify-content: center; gap: 10px; margin: 20px auto; flex-wrap: wrap; }
-
-        /* 中央大バナー */
-        .a8-large-banner-main { margin: 25px auto 15px; width: 100%; text-align: center; }
+        /* A8大バナー（ダウンロードボタンの上） */
+        .a8-large-banner-main { margin: 30px auto 10px; width: 100%; text-align: center; }
         .a8-large-banner-main img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #334155; }
+
+        /* A8小バナー横並び（ダウンロードボタンの下） */
+        .small-ad-row { display: flex; justify-content: center; gap: 10px; margin: 20px auto 10px; flex-wrap: wrap; }
+        .small-ad-row a { display: inline-block; transition: 0.2s; }
+        .small-ad-row a:hover { transform: scale(1.05); }
 
         #preview-container { margin-top: 30px; display: none; text-align: left; }
         .scroll-wrapper { width: 100%; overflow-x: auto; background: #0f172a; border: 1px solid #334155; border-radius: 8px; }
@@ -63,11 +52,9 @@ HTML_PAGE = """
         .policy-section { margin: 60px auto 0; text-align: left; padding: 30px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; }
         .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; text-align: center; }
 
-        /* レスポンシブ：画面が狭いときはサイドバーを隠すか下に置く */
         @media (max-width: 1200px) {
             .page-wrapper { flex-direction: column; align-items: center; }
             .side-ad-left, .side-ad-right { width: 100%; text-align: center; min-width: auto; }
-            .side-ad-left img, .side-ad-right img { max-width: 100%; height: auto; }
         }
     </style>
 </head>
@@ -129,14 +116,15 @@ HTML_PAGE = """
 
                 <button type="submit" class="process-btn" style="background: var(--accent-green); color: black;">PROCESS & DOWNLOAD</button>
 
-                <div class="double-ad-row">
+                <div class="small-ad-row">
                     <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" rel="nofollow">
                     <img border="0" width="120" height="60" alt="" src="https://www28.a8.net/svt/bgt?aid=260124628609&wid=001&eno=01&mid=s00000025766001006000&mc=1"></a>
-                    <img border="0" width="1" height="1" src="https://www15.a8.net/0.gif?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" alt="">
                     
                     <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+BPIX2Q+55QO+609HT" rel="nofollow">
                     <img border="0" width="120" height="60" alt="" src="https://www26.a8.net/svt/bgt?aid=260124628708&wid=001&eno=01&mid=s00000024072001009000&mc=1"></a>
-                    <img border="0" width="1" height="1" src="https://www17.a8.net/0.gif?a8mat=4AVDG4+BPIX2Q+55QO+609HT" alt="">
+
+                    <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+BFEJSI+4VFA+5ZEMP" rel="nofollow">
+                    <img border="0" width="120" height="60" alt="" src="https://www25.a8.net/svt/bgt?aid=260124628691&wid=001&eno=01&mid=s00000022735001005000&mc=1"></a>
                 </div>
 
                 <div id="preview-container">
@@ -151,9 +139,9 @@ HTML_PAGE = """
 
         <div class="content-section">
             <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なムラを加え、トラックに自然な生命力を付加します。</p></div>
-            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、狙ったダイナミクスへ導きます。</p></div>
-            <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>強すぎる音を抑え、弱すぎる音を底上げしてミックスを安定させます。</p></div>
-            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、ピークを抑制します。</p></div>
+            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>全体の音量を音楽的に整え、音のバラつきを解消します。</p></div>
+            <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>強すぎる音を抑え、ダイナミクスを安全な範囲に収めます。</p></div>
+            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、ニュアンスを守りつつピークを抑制します。</p></div>
             <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、トラックにキレを与えます。</p></div>
         </div>
 
@@ -175,147 +163,3 @@ HTML_PAGE = """
         <img border="0" width="1" height="1" src="https://www18.a8.net/0.gif?a8mat=4AVDG4+BOC1V6+F14+6AC5D" alt="">
     </aside>
 </div>
-
-<script>
-    const fileInput = document.getElementById('file-input');
-    const canvas = document.getElementById('piano-roll-canvas');
-    const ctx = canvas.getContext('2d');
-    const toolTypeInput = document.getElementById('tool_type');
-    let notes = [];
-    function switchTab(type) {
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.info-panel').forEach(p => p.classList.remove('active'));
-        document.querySelector('.tab-btn.' + type).classList.add('active');
-        document.getElementById(type + '-panel').classList.add('active');
-        document.getElementById(type + '-info').classList.add('active');
-        toolTypeInput.value = type;
-        const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
-        const btn = document.querySelector('.process-btn');
-        btn.style.background = colors[type];
-        btn.style.color = (type === 'humanizer') ? 'black' : 'white';
-        document.getElementById('legend-after-color').style.background = colors[type];
-        draw();
-    }
-    fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const buffer = await file.arrayBuffer();
-        const view = new DataView(buffer);
-        notes = [];
-        for (let i = 0; i < view.byteLength - 2; i++) {
-            if ((view.getUint8(i) & 0xF0) === 0x90) {
-                const pitch = view.getUint8(i + 1);
-                const vel = view.getUint8(i + 2);
-                if (vel > 0) notes.push({ pitch, vel, rV: Math.random()*2-1, rT: Math.random()*2-1 });
-            }
-        }
-        document.getElementById('preview-container').style.display = 'block';
-        draw();
-    });
-    window.addEventListener('input', draw);
-    function draw() {
-        if (notes.length === 0) return;
-        const type = toolTypeInput.value;
-        const barWidth = 12; const pianoRollHeight = 120; const velocityLaneHeight = 80;
-        canvas.width = Math.max(document.getElementById('scroll-wrapper').clientWidth, notes.length * barWidth);
-        canvas.height = pianoRollHeight + velocityLaneHeight + 10;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
-        notes.forEach((n, i) => {
-            let newV = n.vel; let offsetX = 0;
-            if (type === 'humanizer') {
-                newV += n.rV * parseInt(document.querySelector('#humanizer-panel input[name="h_v_range"]').value || 0);
-                offsetX = n.rT * parseInt(document.querySelector('#humanizer-panel input[name="h_t_percent"]').value || 0) * 0.5;
-            } else if (type === 'normalizer') {
-                const rate = parseInt(document.querySelector('#normalizer-panel input[name="n_norm_rate"]').value || 0) / 100;
-                const avg = notes.reduce((s, x) => s + x.vel, 0) / notes.length;
-                newV = n.vel + (avg - n.vel) * rate;
-                if (document.querySelector('#normalizer-panel input[name="n_use_target"]').checked) newV += (parseInt(document.querySelector('#normalizer-panel input[name="n_target_v"]').value || 80) - avg);
-            } else if (type === 'limiter') {
-                newV = Math.max(parseInt(document.querySelector('#limiter-panel input[name="l_min"]').value || 0), Math.min(parseInt(document.querySelector('#limiter-panel input[name="l_max"]').value || 127), newV));
-            } else if (type === 'compressor') {
-                const th = parseInt(document.querySelector('#compressor-panel input[name="c_thresh"]').value || 80);
-                if (newV > th) newV = th + (newV - th) / parseFloat(document.querySelector('#compressor-panel input[name="c_ratio"]').value || 1);
-            } else if (type === 'expander') {
-                const th = parseInt(document.querySelector('#expander-panel input[name="e_thresh"]').value || 60);
-                if (newV < th) newV = th - (th - newV) * parseFloat(document.querySelector('#expander-panel input[name="e_ratio"]').value || 1);
-            }
-            newV = Math.max(1, Math.min(127, newV));
-            const x = i * barWidth;
-            ctx.fillStyle = '#334155'; ctx.fillRect(x, pianoRollHeight - (n.pitch/127)*pianoRollHeight, barWidth-2, 4);
-            ctx.fillStyle = colors[type]; ctx.fillRect(x + offsetX, pianoRollHeight - (n.pitch/127)*pianoRollHeight, barWidth-2, 4);
-            ctx.fillStyle = '#475569'; ctx.fillRect(x, canvas.height - (n.vel/127)*velocityLaneHeight, barWidth-2, (n.vel/127)*velocityLaneHeight);
-            ctx.fillStyle = colors[type]; ctx.fillRect(x + offsetX, canvas.height - (newV/127)*velocityLaneHeight, barWidth-2, (newV/127)*velocityLaneHeight);
-        });
-        ctx.strokeStyle = '#334155'; ctx.beginPath(); ctx.moveTo(0, pianoRollHeight); ctx.lineTo(canvas.width, pianoRollHeight); ctx.stroke();
-    }
-</script>
-</body>
-</html>
-"""
-
-# --- サーバーサイドロジック ---
-@app.route('/')
-def index():
-    return make_response(HTML_PAGE)
-
-@app.route('/process', methods=['POST'])
-def process():
-    tool = request.form.get('tool_type')
-    file = request.files.get('midi_file')
-    if not file: return "File missing", 400
-    midi_stream = io.BytesIO(file.read())
-    try: mid = mido.MidiFile(file=midi_stream)
-    except: return "Invalid MIDI", 400
-
-    if tool == 'humanizer':
-        v_range = int(request.form.get('h_v_range', 20))
-        t_percent = int(request.form.get('h_t_percent', 5))
-        max_tick_shift = int(mid.ticks_per_beat * (t_percent / 100.0))
-        for track in mid.tracks:
-            for msg in track:
-                if msg.type == 'note_on' and msg.velocity > 0:
-                    msg.velocity = max(1, min(127, msg.velocity + random.randint(-v_range, v_range)))
-                    msg.time = max(0, msg.time + random.randint(-max_tick_shift, max_tick_shift))
-    elif tool == 'normalizer':
-        rate = int(request.form.get('n_norm_rate', 50)) / 100.0
-        use_target = request.form.get('n_use_target') == 'on'
-        target_v = int(request.form.get('n_target_v', 80))
-        vels = [m.velocity for t in mid.tracks for m in t if m.type == 'note_on' and m.velocity > 0]
-        if vels:
-            avg_v = sum(vels) / len(vels)
-            for track in mid.tracks:
-                for msg in track:
-                    if msg.type == 'note_on' and msg.velocity > 0:
-                        cv = msg.velocity + (avg_v - msg.velocity) * rate
-                        fv = cv + (target_v - avg_v) if use_target else cv
-                        msg.velocity = max(1, min(127, int(fv)))
-    elif tool == 'limiter':
-        min_v = int(request.form.get('l_min', 40))
-        max_v = int(request.form.get('l_max', 100))
-        for track in mid.tracks:
-            for msg in track:
-                if msg.type == 'note_on' and msg.velocity > 0:
-                    msg.velocity = max(min_v, min(max_v, msg.velocity))
-    elif tool == 'compressor':
-        th = int(request.form.get('c_thresh', 80))
-        ra = float(request.form.get('c_ratio', 2.0))
-        for track in mid.tracks:
-            for msg in track:
-                if msg.type == 'note_on' and msg.velocity > 0:
-                    if msg.velocity > th: msg.velocity = int(th + (msg.velocity - th) / ra)
-    elif tool == 'expander':
-        th = int(request.form.get('e_thresh', 60))
-        ra = float(request.form.get('e_ratio', 1.5))
-        for track in mid.tracks:
-            for msg in track:
-                if msg.type == 'note_on' and msg.velocity > 0:
-                    if msg.velocity < th: msg.velocity = max(1, int(th - (th - msg.velocity) * ra))
-
-    out = io.BytesIO(); mid.save(file=out); out.seek(0)
-    return send_file(out, as_attachment=True, download_name=f"{tool}_output.mid", mimetype='audio/midi')
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
