@@ -7,7 +7,7 @@ from flask import Flask, request, send_file, make_response
 
 app = Flask(__name__)
 
-# --- デザイン & コンテンツ & A8優先レイアウトHTML ---
+# --- デザイン & コンテンツ & 広告位置入れ替えHTML ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
@@ -34,21 +34,19 @@ HTML_PAGE = """
         label { display: block; font-size: 0.9rem; color: #94a3b8; margin-bottom: 10px; font-weight: 600; }
         input[type="number"] { width: 100%; padding: 15px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 10px; font-size: 1.2rem; box-sizing: border-box; }
         
-        /* メインのダウンロードボタン */
         button.process-btn { border: none; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; font-size: 1.1rem; margin-top: 10px; transition: 0.2s; }
         button.process-btn:hover { transform: translateY(-2px); opacity: 0.9; }
 
-        /* A8大バナー（目立たせる） */
-        .a8-large-banner { margin: 50px auto; max-width: 936px; width: 100%; border: 2px solid #334155; border-radius: 12px; padding: 10px; background: rgba(255,255,255,0.05); }
-        .a8-large-banner img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+        /* A8大バナー（ボタン直上に移動） */
+        .a8-large-banner-main { margin: 25px auto 15px; max-width: 936px; width: 100%; }
+        .a8-large-banner-main img { max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto; border: 1px solid #334155; }
 
-        /* A8小バナー（ボタンの上に配置） */
-        .a8-small-banner { margin: 25px auto 10px; display: block; }
-        .a8-small-banner img { border-radius: 4px; }
+        /* A8小バナー（解説文の下へ移動） */
+        .a8-small-banner-bottom { margin: 40px auto; display: block; }
+        .a8-small-banner-bottom img { border-radius: 4px; border: 1px solid #334155; }
 
-        /* 忍者AdMax（控えめにフッター上へ） */
-        .ninja-area { margin: 40px auto; opacity: 0.6; transition: 0.3s; }
-        .ninja-area:hover { opacity: 1; }
+        /* 忍者AdMax（フッター上） */
+        .ninja-area { margin: 40px auto; opacity: 0.5; }
 
         #preview-container { margin-top: 30px; display: none; text-align: left; }
         .scroll-wrapper { width: 100%; overflow-x: auto; background: #0f172a; border: 1px solid #334155; border-radius: 8px; }
@@ -99,10 +97,10 @@ HTML_PAGE = """
                 <div class="form-group"><label>レシオ (比率 1.0-10.0)</label><input type="number" name="e_ratio" value="1.5" step="0.1"></div>
             </div>
 
-            <div class="a8-small-banner">
-                <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" rel="nofollow">
-                <img border="0" width="120" height="60" alt="" src="https://www28.a8.net/svt/bgt?aid=260124628609&wid=001&eno=01&mid=s00000025766001006000&mc=1"></a>
-                <img border="0" width="1" height="1" src="https://www15.a8.net/0.gif?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" alt="">
+            <div class="a8-large-banner-main">
+                <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" rel="nofollow">
+                <img border="0" width="936" height="120" alt="" src="https://www26.a8.net/svt/bgt?aid=260124628616&wid=001&eno=01&mid=s00000025975001025000&mc=1"></a>
+                <img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" alt="">
             </div>
 
             <button type="submit" class="process-btn" style="background: var(--accent-green); color: black;">PROCESS & DOWNLOAD</button>
@@ -117,18 +115,18 @@ HTML_PAGE = """
         </form>
     </div>
 
-    <div class="a8-large-banner">
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" rel="nofollow">
-        <img border="0" width="936" height="120" alt="" src="https://www26.a8.net/svt/bgt?aid=260124628616&wid=001&eno=01&mid=s00000025975001025000&mc=1"></a>
-        <img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" alt="">
+    <div class="content-section">
+        <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なムラを加え、トラックに自然な生命力を付加します。</p></div>
+        <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、狙ったダイナミクスへ導きます。</p></div>
+        <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを安全な範囲に制限し、ミックスの破綻を防ぎます。</p></div>
+        <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、ピークを抑制します。</p></div>
+        <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、トラックのメリハリを際立たせます。</p></div>
     </div>
 
-    <div class="content-section">
-        <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細な「強弱のムラ」と「タイミングのズレ」をシミュレートし、自然な生命力を付加します。</p></div>
-        <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>全体の平均値を算出し、音楽的なニュアンスを保ったまま音量を整えます。</p></div>
-        <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>強すぎる音を抑え、弱すぎる音を底上げしてミックスを安定させます。</p></div>
-        <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を「比率」で減衰させ、演奏のニュアンスを守りつつピークを抑えます。</p></div>
-        <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに減衰させ、トラックにキレとメリハリを与えます。</p></div>
+    <div class="a8-small-banner-bottom">
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" rel="nofollow">
+        <img border="0" width="120" height="60" alt="" src="https://www28.a8.net/svt/bgt?aid=260124628609&wid=001&eno=01&mid=s00000025766001006000&mc=1"></a>
+        <img border="0" width="1" height="1" src="https://www15.a8.net/0.gif?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" alt="">
     </div>
 
     <div class="ninja-area">
@@ -219,63 +217,3 @@ HTML_PAGE = """
     </script>
 </body>
 </html>
-"""
-
-# --- 以下、Flask処理ロジックは変更なし ---
-@app.route('/')
-def index():
-    return make_response(HTML_PAGE)
-
-@app.route('/process', methods=['POST'])
-def process():
-    tool = request.form.get('tool_type')
-    file = request.files.get('midi_file')
-    if not file: return "File missing", 400
-    midi_stream = io.BytesIO(file.read())
-    try: mid = mido.MidiFile(file=midi_stream)
-    except: return "Invalid MIDI", 400
-    if tool == 'humanizer':
-        v_range = int(request.form.get('h_v_range', 20))
-        t_percent = int(request.form.get('h_t_percent', 5))
-        max_tick_shift = int(mid.ticks_per_beat * (t_percent / 100.0))
-        for track in mid.tracks:
-            for msg in track:
-                if msg.type == 'note_on' and msg.velocity > 0:
-                    msg.velocity = max(1, min(127, msg.velocity + random.randint(-v_range, v_range)))
-                    msg.time = max(0, msg.time + random.randint(-max_tick_shift, max_tick_shift))
-    elif tool == 'normalizer':
-        rate = int(request.form.get('n_norm_rate', 50)) / 100.0
-        use_target = request.form.get('n_use_target') == 'on'
-        target_v = int(request.form.get('n_target_v', 80))
-        vels = [m.velocity for t in mid.tracks for m in t if m.type == 'note_on' and m.velocity > 0]
-        if vels:
-            avg_v = sum(vels) / len(vels)
-            for track in mid.tracks:
-                for msg in track:
-                    if msg.type == 'note_on' and msg.velocity > 0:
-                        cv = msg.velocity + (avg_v - msg.velocity) * rate
-                        fv = cv + (target_v - avg_v) if use_target else cv
-                        msg.velocity = max(1, min(127, int(fv)))
-    elif tool == 'limiter':
-        min_v, max_v = int(request.form.get('l_min', 40)), int(request.form.get('l_max', 100))
-        for track in mid.tracks:
-            for msg in track:
-                if msg.type == 'note_on' and msg.velocity > 0:
-                    msg.velocity = max(min_v, min(max_v, msg.velocity))
-    elif tool == 'compressor':
-        th, ra = int(request.form.get('c_thresh', 80)), float(request.form.get('c_ratio', 2.0))
-        for track in mid.tracks:
-            for msg in track:
-                if msg.type == 'note_on' and msg.velocity > 0:
-                    if msg.velocity > th: msg.velocity = int(th + (msg.velocity - th) / ra)
-    elif tool == 'expander':
-        th, ra = int(request.form.get('e_thresh', 60)), float(request.form.get('e_ratio', 1.5))
-        for track in mid.tracks:
-            for msg in track:
-                if msg.type == 'note_on' and msg.velocity > 0:
-                    if msg.velocity < th: msg.velocity = max(1, int(th - (th - msg.velocity) * ra))
-    out = io.BytesIO(); mid.save(file=out); out.seek(0)
-    return send_file(out, as_attachment=True, download_name=f"{tool}_output.mid", mimetype='audio/midi')
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
