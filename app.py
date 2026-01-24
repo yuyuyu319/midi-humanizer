@@ -42,7 +42,7 @@ HTML_PAGE = """
         .a8-ad-container { margin: 20px auto; text-align: center; }
         .a8-ad-container img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #334155; }
 
-        /* --- 改良：DAW仕様プレビュー --- */
+        /* --- ピアノロール & ベロシティビュー --- */
         #preview-container { margin-top: 30px; display: none; }
         .preview-area { background: #020617; border: 2px solid #334155; border-radius: 12px; overflow: hidden; }
         .velocity-pane { height: 80px; border-bottom: 1px solid #334155; overflow: hidden; background: #010413; position: relative; }
@@ -120,9 +120,8 @@ HTML_PAGE = """
                 </div>
 
                 <div id="preview-container">
-                    <div class="legend">
-                        <div class="legend-item"><span style="background: rgba(255,255,255,0.2);"></span>元の値</div>
-                        <div class="legend-item"><span id="legend-after-color" style="background: var(--accent-green);"></span>処理後（●は先端）</div>
+                    <div id="preview-legend" style="display:flex; justify-content:center; gap:20px; font-size:0.8rem; margin-bottom:10px; color:#94a3b8;">
+                        <div style="display:flex; align-items:center; gap:5px;"><span id="after-indicator" style="width:10px; height:10px; border-radius:50%;"></span>処理後ベロシティ（●は先端）</div>
                     </div>
                     <div class="preview-area">
                         <div class="velocity-pane" id="vel-scroll">
@@ -141,10 +140,10 @@ HTML_PAGE = """
 
         <div class="content-section">
             <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なリズムのズレとベロシティの揺らぎを加え、生命感を生成します。</p></div>
-            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、ダイナミクスを平均化します。</p></div>
-            <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを安全な範囲に制限し、音源の鳴りを安定させます。</p></div>
-            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、演奏のニュアンスを守りつつピークを抑制します。</p></div>
-            <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、トラック全体のメリハリを強調します。</p></div>
+            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、平均化します。</p></div>
+            <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを一定範囲に制限し、鳴りを安定させます。</p></div>
+            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、ピークを抑制します。</p></div>
+            <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、メリハリを強調します。</p></div>
         </div>
 
         <div style="margin: 20px auto; text-align: center; opacity: 0.5;">
@@ -155,7 +154,7 @@ HTML_PAGE = """
             <h2>プライバシーポリシー・利用規約</h2>
             <h3>1. データの取り扱い</h3><p>アップロードされたMIDIファイルはサーバー内の一次メモリ上で即座に処理されます。ストレージへの保存は行われず、処理完了後に完全に消去されます。</p>
             <h3>2. 広告とCookie</h3><p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。</p>
-            <h3>3. 免責事項</h3><p>利用者は自らが正当な権利を有するMIDIデータのみをアップロードするものとします。不具合によるデータ破損等の不利益について管理者は一切の責任を負いません。</p>
+            <h3>3. 免責事項</h3><p>利用者は自らが正当な権利を有するMIDIデータのみをアップロードするものとする。不具合によるデータ破損等の不利益について管理者は一切の責任を負いません。</p>
         </div>
         <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
     </main>
@@ -176,7 +175,6 @@ HTML_PAGE = """
     const velScroll = document.getElementById('vel-scroll');
     let notes = [];
 
-    // 鍵盤ラベル生成
     const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     for(let i=127; i>=0; i--) {
         const div = document.createElement('div');
@@ -195,7 +193,7 @@ HTML_PAGE = """
         toolTypeInput.value = type;
         const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
         document.getElementById('dl-btn').style.background = colors[type];
-        document.getElementById('legend-after-color').style.background = colors[type];
+        document.getElementById('after-indicator').style.background = colors[type];
         draw();
     }
 
@@ -224,7 +222,7 @@ HTML_PAGE = """
         if (notes.length === 0) return;
         const type = toolTypeInput.value;
         const rowH = 12; const noteW = 40; const velH = 80;
-        const totalW = Math.max(680, notes.length * noteW + 100);
+        const totalW = Math.max(680, notes.length * noteW + 20);
 
         pCanvas.width = totalW; pCanvas.height = 128 * rowH;
         vCanvas.width = totalW; vCanvas.height = velH;
@@ -233,7 +231,7 @@ HTML_PAGE = """
 
         const activeColor = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' }[type];
 
-        // 4分グリッド（背景線）
+        // 拍線描画（4分音符ごと）
         pCtx.strokeStyle = "#1e293b";
         vCtx.strokeStyle = "#1e293b";
         for(let x=0; x<totalW; x+=noteW*4) {
@@ -264,25 +262,27 @@ HTML_PAGE = """
             }
             newV = Math.max(1, Math.min(127, newV));
 
-            const x = i * noteW + 20;
-            const y = (127 - n.pitch) * rowH;
+            // X位置を完全に同期させる
+            const xBase = i * noteW + 20;
+            const xDraw = xBase + offsetX;
+            const yNote = (127 - n.pitch) * rowH;
 
-            // ピアノロール表示
-            pCtx.fillStyle = "rgba(255,255,255,0.1)"; pCtx.fillRect(x, y, noteW-4, rowH-1);
-            pCtx.fillStyle = activeColor; pCtx.globalAlpha = newV / 127;
-            pCtx.fillRect(x + offsetX, y, noteW-4, rowH-1);
+            // ピアノロール描画（残像なし）
+            pCtx.fillStyle = activeColor;
+            pCtx.globalAlpha = newV / 127;
+            pCtx.fillRect(xDraw, yNote, noteW-4, rowH-1);
             pCtx.globalAlpha = 1.0;
-            // 先端チップ
-            pCtx.beginPath(); pCtx.arc(x + offsetX + (noteW-4), y + (rowH/2), 3, 0, Math.PI*2); pCtx.fill();
 
-            // 上部固定ベロシティバー
-            const hOrig = (n.vel/127)*velH; const hNew = (newV/127)*velH;
-            vCtx.fillStyle = "#334155"; vCtx.fillRect(x, velH - hOrig, 4, hOrig);
-            vCtx.fillStyle = activeColor; vCtx.fillRect(x + offsetX + 4, velH - hNew, 4, hNew);
+            // ベロシティバー描画（重なり対策：先端に円形）
+            const barH = (newV / 127) * (velH - 10);
+            vCtx.fillStyle = activeColor;
+            vCtx.fillRect(xDraw + (noteW/2) - 3, velH - barH, 4, barH);
+            vCtx.beginPath();
+            vCtx.arc(xDraw + (noteW/2) - 1, velH - barH, 4, 0, Math.PI * 2);
+            vCtx.fill();
         });
     }
 
-    // 同期スクロール
     pianoScroll.onscroll = () => { 
         keyLabels.scrollTop = pianoScroll.scrollTop; 
         velScroll.scrollLeft = pianoScroll.scrollLeft; 
