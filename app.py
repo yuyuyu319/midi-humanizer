@@ -14,7 +14,7 @@ HTML_PAGE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1100">
-    <title>MIDI Tools - Professional Dynamics Processor</title>
+    <title>MIDI Tools - Piano Roll Processor</title>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent-green: #00e676; --accent-blue: #00b0ff; --accent-orange: #ff9100; --accent-purple: #d500f9; --accent-red: #ff5252; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin:0; line-height: 1.6; }
@@ -46,11 +46,21 @@ HTML_PAGE = """
         .policy-section { margin: 60px auto 0; text-align: left; padding: 40px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; background: #0f172a; border-radius: 0 0 24px 24px; }
         .policy-section h2 { color: #f8fafc; font-size: 1.2rem; border-left: 4px solid var(--accent-blue); padding-left: 10px; margin-bottom: 15px; }
         .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; text-align: center; }
+        
+        /* --- 本格ピアノロールビュー --- */
         #preview-container { margin-top: 30px; display: none; }
-        .scroll-wrapper { width: 100%; overflow-x: auto; background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 10px; box-sizing: border-box; }
-        canvas { display: block; }
+        .piano-roll-wrapper { 
+            width: 100%; 
+            height: 400px; /* 縦スクロール用 */
+            overflow: auto; 
+            background: #020617; 
+            border: 2px solid #334155; 
+            border-radius: 12px;
+            position: relative;
+        }
+        canvas { display: block; background-size: 40px 40px; background-image: linear-gradient(to right, #1e293b 1px, transparent 1px), linear-gradient(to bottom, #1e293b 1px, transparent 1px); }
         .legend { display: flex; justify-content: center; gap: 20px; font-size: 0.8rem; margin-bottom: 10px; color: #94a3b8; }
-        .legend-item span { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; }
+        .legend-item span { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -92,12 +102,12 @@ HTML_PAGE = """
                 <div id="compressor-panel" class="tool-panel">
                     <h1>Compressor</h1><p class="subtitle">大きい音を比率で圧縮</p>
                     <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="c_thresh" id="c_thresh" value="80" min="1" max="127" oninput="draw()"></div>
-                    <div class="form-group"><label>レシオ (1.0以上)</label><input type="number" name="c_ratio" id="c_ratio" value="2.0" step="0.1" min="1.0" oninput="draw()"></div>
+                    <div class="form-group"><label>レシオ</label><input type="number" name="c_ratio" id="c_ratio" value="2.0" step="0.1" min="1.0" oninput="draw()"></div>
                 </div>
                 <div id="expander-panel" class="tool-panel">
                     <h1>Expander</h1><p class="subtitle">小さい音をさらに減衰</p>
                     <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="e_thresh" id="e_thresh" value="60" min="1" max="127" oninput="draw()"></div>
-                    <div class="form-group"><label>レシオ (1.0以上)</label><input type="number" name="e_ratio" id="e_ratio" value="1.5" step="0.1" min="1.0" oninput="draw()"></div>
+                    <div class="form-group"><label>レシオ</label><input type="number" name="e_ratio" id="e_ratio" value="1.5" step="0.1" min="1.0" oninput="draw()"></div>
                 </div>
 
                 <div class="small-ad-row">
@@ -114,19 +124,21 @@ HTML_PAGE = """
 
                 <div id="preview-container">
                     <div class="legend">
-                        <div class="legend-item"><span style="background: #475569;"></span>元の値</div>
-                        <div class="legend-item"><span id="legend-after-color" style="background: var(--accent-green);"></span>処理後</div>
+                        <div class="legend-item"><span style="background: rgba(255,255,255,0.2); border: 1px solid #475569;"></span>元のノート</div>
+                        <div class="legend-item"><span id="legend-after-color" style="background: var(--accent-green);"></span>処理後（●は先端）</div>
                     </div>
-                    <div class="scroll-wrapper" id="scroll-wrapper"><canvas id="piano-roll-canvas"></canvas></div>
+                    <div class="piano-roll-wrapper" id="piano-roll-wrapper">
+                        <canvas id="piano-roll-canvas"></canvas>
+                    </div>
                 </div>
             </form>
         </div>
 
         <div class="content-section">
-            <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なズレと強弱のムラを加え、人間らしい生命感を生成します。</p></div>
-            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>全体の平均音量を算出し、ダイナミクスを音楽的に整えます。</p></div>
+            <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なリズムのズレとベロシティの揺らぎを加え、生命感を生成します。</p></div>
+            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、ダイナミクスを平均化します。</p></div>
             <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを安全な範囲に制限し、音源の鳴りを安定させます。</p></div>
-            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、ニュアンスを守りつつピークを抑制します。</p></div>
+            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、演奏のニュアンスを守りつつピークを抑制します。</p></div>
             <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、トラック全体のメリハリを強調します。</p></div>
         </div>
 
@@ -137,8 +149,8 @@ HTML_PAGE = """
         <div class="policy-section">
             <h2>プライバシーポリシー・利用規約</h2>
             <h3>1. データの取り扱い</h3><p>アップロードされたMIDIファイルはサーバー内の一次メモリ上で即座に処理されます。ストレージへの保存は行われず、処理完了後に完全に消去されます。</p>
-            <h3>2. 広告とCookie</h3><p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。これにより得られる情報は匿名のものであり個人を特定しません。</p>
-            <h3>3. 免責事項</h3><p>利用者は自らが正当な権利を有するMIDIデータのみをアップロードするものとします。権利侵害や、不具合によるデータ破損等のいかなる損害についても当サイト管理者は責任を負いません。</p>
+            <h3>2. 広告とCookie</h3><p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。</p>
+            <h3>3. 免責事項</h3><p>利用者は自らが正当な権利を有するMIDIデータのみをアップロードするものとします。いかなる不利益についても当サイト管理者は責任を負いません。</p>
         </div>
         <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
     </main>
@@ -147,6 +159,7 @@ HTML_PAGE = """
         <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+BOC1V6+F14+6AC5D" rel="nofollow"><img border="0" width="120" height="600" src="https://www21.a8.net/svt/bgt?aid=260124628706&wid=001&eno=01&mid=s00000001948001056000&mc=1"></a>
     </aside>
 </div>
+
 <script>
     const toolTypeInput = document.getElementById('tool_type');
     const canvas = document.getElementById('piano-roll-canvas');
@@ -175,32 +188,55 @@ HTML_PAGE = """
         const buffer = await file.arrayBuffer();
         const view = new DataView(buffer);
         notes = [];
-        for (let i = 0; i < view.byteLength - 2; i++) {
-            if ((view.getUint8(i) & 0xF0) === 0x90) {
+        let currentTime = 0;
+        // 簡易解析（Note ONのみ抽出）
+        for (let i = 0; i < view.byteLength - 3; i++) {
+            const byte = view.getUint8(i);
+            if ((byte & 0xF0) === 0x90) {
                 const pitch = view.getUint8(i + 1);
                 const vel = view.getUint8(i + 2);
-                if (vel > 0) notes.push({ pitch, vel, rV: Math.random()*2-1, rT: Math.random()*2-1 });
+                if (vel > 0) {
+                    notes.push({ 
+                        pitch, vel, 
+                        time: i, // 位置特定用 
+                        rV: Math.random()*2-1, 
+                        rT: Math.random()*2-1 
+                    });
+                }
             }
         }
         document.getElementById('preview-container').style.display = 'block';
+        
+        // 読込後、ノートの範囲へ自動スクロール
+        setTimeout(() => {
+            const avgPitch = notes.reduce((s, n) => s + n.pitch, 0) / notes.length;
+            const scrollPos = (127 - avgPitch) * 12 - 200;
+            document.getElementById('piano-roll-wrapper').scrollTop = scrollPos;
+        }, 50);
         draw();
     });
 
     function draw() {
         if (notes.length === 0) return;
         const type = toolTypeInput.value;
-        const barWidth = 12; const pianoRollHeight = 120; const velocityLaneHeight = 80;
-        canvas.width = 640; canvas.height = pianoRollHeight + velocityLaneHeight + 10;
+        const rowHeight = 12; // 1半音の高さ
+        const noteWidth = 30; // ノートの横幅
+        const padding = 50;
+
+        canvas.width = Math.max(700, notes.length * 40);
+        canvas.height = 128 * rowHeight; // 全音域を表示
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
-        
+        const activeColor = colors[type];
+
         notes.forEach((n, i) => {
             let newV = n.vel; let offsetX = 0;
             if (type === 'humanizer') {
-                newV += n.rV * (Math.max(0, parseInt(document.getElementById('h_v_range').value) || 0));
-                offsetX = n.rT * (Math.max(0, parseInt(document.getElementById('h_t_percent').value) || 0)) * 0.5;
+                newV += n.rV * (parseInt(document.getElementById('h_v_range').value) || 0);
+                offsetX = n.rT * (parseInt(document.getElementById('h_t_percent').value) || 0) * 0.8;
             } else if (type === 'normalizer') {
-                const rate = (Math.max(0, parseInt(document.getElementById('n_norm_rate').value) || 0)) / 100;
+                const rate = (parseInt(document.getElementById('n_norm_rate').value) || 0) / 100;
                 const avg = notes.reduce((s, x) => s + x.vel, 0) / notes.length;
                 newV = n.vel + (avg - n.vel) * rate;
                 if (document.getElementById('n_use_target').checked) newV += (parseInt(document.getElementById('n_target_v').value) - avg);
@@ -216,11 +252,24 @@ HTML_PAGE = """
                 if (newV < th) newV = th - (th - newV) * ra;
             }
             newV = Math.max(1, Math.min(127, newV));
-            const x = i * barWidth;
-            ctx.fillStyle = '#334155'; ctx.fillRect(x, pianoRollHeight - (n.pitch/127)*pianoRollHeight, barWidth-2, 4);
-            ctx.fillStyle = colors[type]; ctx.fillRect(x + offsetX, pianoRollHeight - (n.pitch/127)*pianoRollHeight, barWidth-2, 4);
-            ctx.fillStyle = '#475569'; ctx.fillRect(x, canvas.height - (n.vel/127)*velocityLaneHeight, barWidth-2, (n.vel/127)*velocityLaneHeight);
-            ctx.fillStyle = colors[type]; ctx.fillRect(x + offsetX, canvas.height - (newV/127)*velocityLaneHeight, barWidth-2, (newV/127)*velocityLaneHeight);
+
+            const x = i * 40 + padding;
+            const y = (127 - n.pitch) * rowHeight;
+
+            // 元のノート（背景として薄く表示）
+            ctx.fillStyle = "rgba(255,255,255,0.1)";
+            ctx.fillRect(x, y, noteWidth, rowHeight - 1);
+
+            // 処理後のノート
+            ctx.fillStyle = activeColor;
+            ctx.globalAlpha = newV / 127; // 強弱を透明度で表現
+            ctx.fillRect(x + offsetX, y, noteWidth, rowHeight - 1);
+            ctx.globalAlpha = 1.0;
+
+            // 重なり対策：先端にベロシティの大きさを表す円形を描画
+            ctx.beginPath();
+            ctx.arc(x + offsetX + noteWidth, y + (rowHeight/2), (newV/127) * 5 + 2, 0, Math.PI * 2);
+            ctx.fill();
         });
     }
 </script>
