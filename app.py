@@ -7,7 +7,7 @@ from flask import Flask, request, send_file, make_response
 
 app = Flask(__name__)
 
-# --- デザイン & コンテンツ & 広告3種実装HTML ---
+# --- デザイン & コンテンツ & A8優先レイアウトHTML ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
@@ -33,18 +33,30 @@ HTML_PAGE = """
         .form-group { margin: 25px 0; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto; }
         label { display: block; font-size: 0.9rem; color: #94a3b8; margin-bottom: 10px; font-weight: 600; }
         input[type="number"] { width: 100%; padding: 15px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 10px; font-size: 1.2rem; box-sizing: border-box; }
-        button.process-btn { border: none; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; font-size: 1.1rem; margin-top: 20px; transition: 0.2s; }
+        
+        /* メインのダウンロードボタン */
+        button.process-btn { border: none; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; font-size: 1.1rem; margin-top: 10px; transition: 0.2s; }
         button.process-btn:hover { transform: translateY(-2px); opacity: 0.9; }
-        .ad-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 15px; margin: 20px auto; min-height: 100px; }
-        .footer-ad { margin: 40px auto; max-width: 936px; width: 100%; overflow: hidden; }
-        .footer-ad img { max-width: 100%; height: auto; border-radius: 8px; }
+
+        /* A8大バナー（目立たせる） */
+        .a8-large-banner { margin: 50px auto; max-width: 936px; width: 100%; border: 2px solid #334155; border-radius: 12px; padding: 10px; background: rgba(255,255,255,0.05); }
+        .a8-large-banner img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+
+        /* A8小バナー（ボタンの上に配置） */
+        .a8-small-banner { margin: 25px auto 10px; display: block; }
+        .a8-small-banner img { border-radius: 4px; }
+
+        /* 忍者AdMax（控えめにフッター上へ） */
+        .ninja-area { margin: 40px auto; opacity: 0.6; transition: 0.3s; }
+        .ninja-area:hover { opacity: 1; }
+
         #preview-container { margin-top: 30px; display: none; text-align: left; }
         .scroll-wrapper { width: 100%; overflow-x: auto; background: #0f172a; border: 1px solid #334155; border-radius: 8px; }
         canvas { display: block; }
         .legend { display: flex; justify-content: center; gap: 20px; font-size: 0.8rem; margin: 15px 0; color: #94a3b8; }
         .legend-item span { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; }
-        .content-section { max-width: 850px; margin: 60px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
-        .policy-section { max-width: 850px; margin: 80px auto 0; text-align: left; padding: 30px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; }
+        .content-section { max-width: 850px; margin: 40px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
+        .policy-section { max-width: 850px; margin: 60px auto 0; text-align: left; padding: 30px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; }
         .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; }
     </style>
 </head>
@@ -60,6 +72,7 @@ HTML_PAGE = """
         <form action="/process" method="post" enctype="multipart/form-data">
             <input type="hidden" name="tool_type" id="tool_type" value="humanizer">
             <div style="margin-bottom: 25px; border: 2px dashed #334155; padding: 20px; border-radius: 12px;"><input type="file" id="file-input" name="midi_file" accept=".mid,.midi" required style="color: #94a3b8;"></div>
+            
             <div id="humanizer-panel" class="tool-panel active">
                 <h1>Humanizer</h1><p class="subtitle">自然なリズムの揺らぎと強弱を付加。</p>
                 <div class="form-group"><label>ベロシティ揺れ幅 (± 0-50)</label><input type="number" name="h_v_range" value="20"></div>
@@ -85,14 +98,15 @@ HTML_PAGE = """
                 <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="e_thresh" value="60"></div>
                 <div class="form-group"><label>レシオ (比率 1.0-10.0)</label><input type="number" name="e_ratio" value="1.5" step="0.1"></div>
             </div>
-            <div class="ad-row">
-                <div><script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script></div>
-                <div>
-                    <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" rel="nofollow"><img border="0" width="120" height="60" alt="" src="https://www28.a8.net/svt/bgt?aid=260124628609&wid=001&eno=01&mid=s00000025766001006000&mc=1"></a>
-                    <img border="0" width="1" height="1" src="https://www15.a8.net/0.gif?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" alt="">
-                </div>
+
+            <div class="a8-small-banner">
+                <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" rel="nofollow">
+                <img border="0" width="120" height="60" alt="" src="https://www28.a8.net/svt/bgt?aid=260124628609&wid=001&eno=01&mid=s00000025766001006000&mc=1"></a>
+                <img border="0" width="1" height="1" src="https://www15.a8.net/0.gif?a8mat=4AVDG4+A2L06Q+5IT8+5ZMCH" alt="">
             </div>
+
             <button type="submit" class="process-btn" style="background: var(--accent-green); color: black;">PROCESS & DOWNLOAD</button>
+
             <div id="preview-container">
                 <div class="legend">
                     <div class="legend-item"><span style="background: #475569;"></span>元の値</div>
@@ -102,23 +116,32 @@ HTML_PAGE = """
             </div>
         </form>
     </div>
-    <div class="content-section">
-        <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細な揺らぎを加え、自然な生命力を付加します。</p></div>
-        <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、狙ったダイナミクスへ導きます。</p></div>
-        <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを安全な範囲に制限し、ミックスの破綻を防ぎます。</p></div>
-        <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、演奏のニュアンスを守りつつピークを抑えます。</p></div>
-        <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、トラックのメリハリを際立たせます。</p></div>
-    </div>
-    <div class="footer-ad">
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" rel="nofollow"><img border="0" width="936" height="120" alt="" src="https://www26.a8.net/svt/bgt?aid=260124628616&wid=001&eno=01&mid=s00000025975001025000&mc=1"></a>
+
+    <div class="a8-large-banner">
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" rel="nofollow">
+        <img border="0" width="936" height="120" alt="" src="https://www26.a8.net/svt/bgt?aid=260124628616&wid=001&eno=01&mid=s00000025975001025000&mc=1"></a>
         <img border="0" width="1" height="1" src="https://www19.a8.net/0.gif?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" alt="">
     </div>
+
+    <div class="content-section">
+        <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細な「強弱のムラ」と「タイミングのズレ」をシミュレートし、自然な生命力を付加します。</p></div>
+        <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>全体の平均値を算出し、音楽的なニュアンスを保ったまま音量を整えます。</p></div>
+        <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>強すぎる音を抑え、弱すぎる音を底上げしてミックスを安定させます。</p></div>
+        <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を「比率」で減衰させ、演奏のニュアンスを守りつつピークを抑えます。</p></div>
+        <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに減衰させ、トラックにキレとメリハリを与えます。</p></div>
+    </div>
+
+    <div class="ninja-area">
+        <script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script>
+    </div>
+
     <div class="policy-section">
         <h2>プライバシーポリシー</h2>
         <p>MIDIファイルはサーバーに保存されず、メモリ内で即座に処理されます。</p>
         <p>当サイトでは第三者配信事業者がCookieを利用して広告を配信する場合があります。</p>
     </div>
     <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
+
     <script>
         const fileInput = document.getElementById('file-input');
         const canvas = document.getElementById('piano-roll-canvas');
@@ -198,6 +221,7 @@ HTML_PAGE = """
 </html>
 """
 
+# --- 以下、Flask処理ロジックは変更なし ---
 @app.route('/')
 def index():
     return make_response(HTML_PAGE)
