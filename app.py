@@ -38,7 +38,9 @@ HTML_PAGE = """
         input[type="number"] { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 10px; font-size: 1.1rem; box-sizing: border-box; }
         button.process-btn { border: none; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; font-size: 1.1rem; margin: 10px auto; display: block; transition: 0.2s; }
         .small-ad-row { display: flex; justify-content: center; gap: 8px; margin: 30px auto 15px; }
-        .a8-large-banner-main { margin: 20px auto; text-align: center; }
+        .small-ad-row img { border-radius: 4px; border: 1px solid #334155; }
+        .a8-ad-container { margin: 20px auto; text-align: center; }
+        .a8-ad-container img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #334155; }
         .content-section { margin: 40px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
         .content-section h2 { border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 0; }
         .policy-section { margin: 60px auto 0; text-align: left; padding: 40px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; background: #0f172a; border-radius: 0 0 24px 24px; }
@@ -54,7 +56,7 @@ HTML_PAGE = """
 <body>
 <div class="page-wrapper">
     <aside class="side-ad-left">
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+BFZZEA+2PEO+1I7QCH" rel="nofollow"><img border="0" width="120" height="600" src="https://www23.a8.net/svt/bgt?aid=260124628692&wid=001&eno=01&mid=s00000012624009106000&mc=1"></a>
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+BFZZEA+2PEO+1I7QCH" rel="nofollow"><img border="0" width="120" height="600" src="https://www23.a8.net/svt/bgt?aid=260124628692&wid=001&eno=01&mid=s00000012624009106000&mc=1" alt=""></a>
     </aside>
 
     <main class="main-content">
@@ -74,28 +76,28 @@ HTML_PAGE = """
                 
                 <div id="humanizer-panel" class="tool-panel active">
                     <h1>Humanizer</h1><p class="subtitle">自然なリズムの揺らぎと強弱を付加</p>
-                    <div class="form-group"><label>ベロシティ揺れ幅 (± 0-50)</label><input type="number" name="h_v_range" id="h_v_range" value="20" oninput="draw()"></div>
-                    <div class="form-group"><label>タイミング揺れ幅 (%)</label><input type="number" name="h_t_percent" id="h_t_percent" value="5" oninput="draw()"></div>
+                    <div class="form-group"><label>ベロシティ揺れ幅 (0-50)</label><input type="number" name="h_v_range" id="h_v_range" value="20" min="0" max="50" oninput="draw()"></div>
+                    <div class="form-group"><label>タイミング揺れ幅 (%)</label><input type="number" name="h_t_percent" id="h_t_percent" value="5" min="0" max="20" oninput="draw()"></div>
                 </div>
                 <div id="normalizer-panel" class="tool-panel">
-                    <h1>Normalizer</h1><p class="subtitle">全体の平均化と目標値への調整</p>
-                    <div class="form-group" style="text-align: center;"><label><input type="checkbox" name="n_use_target" id="n_use_target" checked onchange="draw()"> 目標値を指定</label><input type="number" name="n_target_v" id="n_target_v" value="80" oninput="draw()"></div>
-                    <div class="form-group"><label>圧縮率 (%)</label><input type="number" name="n_norm_rate" id="n_norm_rate" value="50" oninput="draw()"></div>
+                    <h1>Normalizer</h1><p class="subtitle">平均化と目標値への調整</p>
+                    <div class="form-group" style="text-align: center;"><label><input type="checkbox" name="n_use_target" id="n_use_target" checked onchange="draw()"> 目標値を指定</label><input type="number" name="n_target_v" id="n_target_v" value="80" min="1" max="127" oninput="draw()"></div>
+                    <div class="form-group"><label>圧縮率 (%)</label><input type="number" name="n_norm_rate" id="n_norm_rate" value="50" min="0" max="100" oninput="draw()"></div>
                 </div>
                 <div id="limiter-panel" class="tool-panel">
                     <h1>Limiter</h1><p class="subtitle">ベロシティを一定範囲内に制限</p>
-                    <div class="form-group"><label>最小値 (Min)</label><input type="number" name="l_min" id="l_min" value="40" oninput="draw()"></div>
-                    <div class="form-group"><label>最大値 (Max)</label><input type="number" name="l_max" id="l_max" value="100" oninput="draw()"></div>
+                    <div class="form-group"><label>最小値 (Min)</label><input type="number" name="l_min" id="l_min" value="40" min="1" max="127" oninput="draw()"></div>
+                    <div class="form-group"><label>最大値 (Max)</label><input type="number" name="l_max" id="l_max" value="100" min="1" max="127" oninput="draw()"></div>
                 </div>
                 <div id="compressor-panel" class="tool-panel">
                     <h1>Compressor</h1><p class="subtitle">大きい音を比率で圧縮</p>
-                    <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="c_thresh" id="c_thresh" value="80" oninput="draw()"></div>
-                    <div class="form-group"><label>レシオ</label><input type="number" name="c_ratio" id="c_ratio" value="2.0" step="0.1" oninput="draw()"></div>
+                    <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="c_thresh" id="c_thresh" value="80" min="1" max="127" oninput="draw()"></div>
+                    <div class="form-group"><label>レシオ (1.0以上)</label><input type="number" name="c_ratio" id="c_ratio" value="2.0" step="0.1" min="1.0" oninput="draw()"></div>
                 </div>
                 <div id="expander-panel" class="tool-panel">
                     <h1>Expander</h1><p class="subtitle">小さい音をさらに減衰</p>
-                    <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="e_thresh" id="e_thresh" value="60" oninput="draw()"></div>
-                    <div class="form-group"><label>レシオ</label><input type="number" name="e_ratio" id="e_ratio" value="1.5" step="0.1" oninput="draw()"></div>
+                    <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="e_thresh" id="e_thresh" value="60" min="1" max="127" oninput="draw()"></div>
+                    <div class="form-group"><label>レシオ (1.0以上)</label><input type="number" name="e_ratio" id="e_ratio" value="1.5" step="0.1" min="1.0" oninput="draw()"></div>
                 </div>
 
                 <div class="small-ad-row">
@@ -106,7 +108,7 @@ HTML_PAGE = """
 
                 <button type="submit" class="process-btn" id="dl-btn" style="background: var(--accent-green); color: black;">PROCESS & DOWNLOAD</button>
 
-                <div class="a8-large-banner-main">
+                <div class="a8-ad-container">
                     <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" rel="nofollow"><img border="0" width="936" height="120" src="https://www26.a8.net/svt/bgt?aid=260124628616&wid=001&eno=01&mid=s00000025975001025000&mc=1"></a>
                 </div>
 
@@ -122,27 +124,19 @@ HTML_PAGE = """
 
         <div class="content-section">
             <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なタイミングと強弱の揺らぎを加え、生命感を生成します。</p></div>
-            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>全体の平均音量を算出し、ダイナミクスを音楽的に整えます。</p></div>
+            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、音のバラつきを解消します。</p></div>
             <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを安全な範囲に収め、音源の鳴りを安定させます。</p></div>
             <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、演奏のニュアンスを守りつつピークを抑制します。</p></div>
             <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、トラック全体のメリハリを強調します。</p></div>
         </div>
 
-        <div class="a8-large-banner-main">
-            <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" rel="nofollow"><img border="0" width="936" height="120" src="https://www26.a8.net/svt/bgt?aid=260124628616&wid=001&eno=01&mid=s00000025975001025000&mc=1"></a>
-        </div>
         <div style="margin: 20px auto; text-align: center; opacity: 0.5;"><script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script></div>
 
         <div class="policy-section">
             <h2>プライバシーポリシー・利用規約</h2>
-            <h3>1. データの取り扱い</h3>
-            <p>アップロードされたMIDIファイルはサーバー内の一次メモリ上で即座に処理されます。ストレージへの保存は行われず、処理完了後または通信切断後に完全に消去されます。</p>
-            <h3>2. 広告とCookie</h3>
-            <p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。匿名情報であり、個人特定は行われません。</p>
-            <h3>3. 免責事項（著作権・利用責任）</h3>
-            <p><b>・著作権：</b>アップロードするMIDIデータは、利用者が正当な権利（自作、または権利者の承諾済み）を有しているものに限ります。権利侵害に関するトラブルについて当サイトは一切関与せず、全責任は利用者自身が負うものとします。</p>
-            <p><b>・商用利用：</b>本ツールで加工したMIDIデータの商用利用は制限しませんが、それによる収益・損失、または音楽的評価について当サイトは一切の保証をいたしません。</p>
-            <p><b>・不具合：</b>変換結果の正確性や、バグ、通信エラーによるデータ破損、サービス停止等によって生じた不利益について、管理者は賠償責任を負わないものとします。</p>
+            <h3>1. データの取り扱い</h3><p>アップロードされたMIDIファイルはサーバー内の一次メモリ上で即座に処理されます。ストレージへの保存は行われず、処理完了後に完全に消去されます。</p>
+            <h3>2. 広告とCookie</h3><p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。</p>
+            <h3>3. 免責事項</h3><p>権利侵害に関するトラブルについて当サイトは一切関与せず、全責任は利用者自身が負うものとします。不具合によるデータ破損等の不利益について管理者は一切の責任を負いません。</p>
         </div>
         <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
     </main>
@@ -156,6 +150,7 @@ HTML_PAGE = """
     const canvas = document.getElementById('piano-roll-canvas');
     const ctx = canvas.getContext('2d');
     let notes = [];
+
     function switchTab(type) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
@@ -171,6 +166,7 @@ HTML_PAGE = """
         document.getElementById('legend-after-color').style.background = colors[type];
         draw();
     }
+
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -187,6 +183,7 @@ HTML_PAGE = """
         document.getElementById('preview-container').style.display = 'block';
         draw();
     });
+
     function draw() {
         if (notes.length === 0) return;
         const type = toolTypeInput.value;
@@ -194,24 +191,27 @@ HTML_PAGE = """
         canvas.width = 640; canvas.height = pianoRollHeight + velocityLaneHeight + 10;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
+        
         notes.forEach((n, i) => {
             let newV = n.vel; let offsetX = 0;
             if (type === 'humanizer') {
-                newV += n.rV * (parseInt(document.getElementById('h_v_range').value) || 0);
-                offsetX = n.rT * (parseInt(document.getElementById('h_t_percent').value) || 0) * 0.5;
+                newV += n.rV * (Math.max(0, parseInt(document.getElementById('h_v_range').value) || 0));
+                offsetX = n.rT * (Math.max(0, parseInt(document.getElementById('h_t_percent').value) || 0)) * 0.5;
             } else if (type === 'normalizer') {
-                const rate = (parseInt(document.getElementById('n_norm_rate').value) || 0) / 100;
+                const rate = (Math.max(0, parseInt(document.getElementById('n_norm_rate').value) || 0)) / 100;
                 const avg = notes.reduce((s, x) => s + x.vel, 0) / notes.length;
                 newV = n.vel + (avg - n.vel) * rate;
                 if (document.getElementById('n_use_target').checked) newV += (parseInt(document.getElementById('n_target_v').value) - avg);
             } else if (type === 'limiter') {
-                newV = Math.max(parseInt(document.getElementById('l_min').value), Math.min(parseInt(document.getElementById('l_max').value), newV));
+                newV = Math.max(parseInt(document.getElementById('l_min').value) || 1, Math.min(parseInt(document.getElementById('l_max').value) || 127, newV));
             } else if (type === 'compressor') {
-                const th = parseInt(document.getElementById('c_thresh').value);
-                if (newV > th) newV = th + (newV - th) / parseFloat(document.getElementById('c_ratio').value);
+                const th = parseInt(document.getElementById('c_thresh').value) || 80;
+                const ra = Math.max(1.0, parseFloat(document.getElementById('c_ratio').value) || 1.0);
+                if (newV > th) newV = th + (newV - th) / ra;
             } else if (type === 'expander') {
-                const th = parseInt(document.getElementById('e_thresh').value);
-                if (newV < th) newV = th - (th - newV) * parseFloat(document.getElementById('e_ratio').value);
+                const th = parseInt(document.getElementById('e_thresh').value) || 60;
+                const ra = Math.max(1.0, parseFloat(document.getElementById('e_ratio').value) || 1.0);
+                if (newV < th) newV = th - (th - newV) * ra;
             }
             newV = Math.max(1, Math.min(127, newV));
             const x = i * barWidth;
@@ -237,9 +237,11 @@ def process():
     midi_stream = io.BytesIO(file.read())
     try: mid = mido.MidiFile(file=midi_stream)
     except: return "Invalid MIDI", 400
+    
+    # Python側でも負の値をガード
     if tool == 'humanizer':
-        v_range = int(request.form.get('h_v_range', 20))
-        t_percent = int(request.form.get('h_t_percent', 5))
+        v_range = max(0, int(request.form.get('h_v_range', 20)))
+        t_percent = max(0, int(request.form.get('h_t_percent', 5)))
         max_tick_shift = int(mid.ticks_per_beat * (t_percent / 100.0))
         for track in mid.tracks:
             for msg in track:
@@ -247,9 +249,9 @@ def process():
                     msg.velocity = max(1, min(127, msg.velocity + random.randint(-v_range, v_range)))
                     msg.time = max(0, msg.time + random.randint(-max_tick_shift, max_tick_shift))
     elif tool == 'normalizer':
-        rate = int(request.form.get('n_norm_rate', 50)) / 100.0
+        rate = max(0, int(request.form.get('n_norm_rate', 50))) / 100.0
         use_target = request.form.get('n_use_target') == 'on'
-        target_v = int(request.form.get('n_target_v', 80))
+        target_v = max(1, min(127, int(request.form.get('n_target_v', 80))))
         vels = [m.velocity for t in mid.tracks for m in t if m.type == 'note_on' and m.velocity > 0]
         if vels:
             avg_v = sum(vels) / len(vels)
@@ -260,25 +262,31 @@ def process():
                         fv = cv + (target_v - avg_v) if use_target else cv
                         msg.velocity = max(1, min(127, int(fv)))
     elif tool == 'limiter':
-        min_v, max_v = int(request.form.get('l_min', 40)), int(request.form.get('l_max', 100))
+        min_v = max(1, int(request.form.get('l_min', 40)))
+        max_v = max(1, int(request.form.get('l_max', 100)))
         for track in mid.tracks:
             for msg in track:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     msg.velocity = max(min_v, min(max_v, msg.velocity))
     elif tool == 'compressor':
-        th, ra = int(request.form.get('c_thresh', 80)), float(request.form.get('c_ratio', 2.0))
+        th = max(1, int(request.form.get('c_thresh', 80)))
+        ra = max(1.0, float(request.form.get('c_ratio', 2.0)))
         for track in mid.tracks:
             for msg in track:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     if msg.velocity > th: msg.velocity = int(th + (msg.velocity - th) / ra)
     elif tool == 'expander':
-        th, ra = int(request.form.get('e_thresh', 60)), float(request.form.get('e_ratio', 1.5))
+        th = max(1, int(request.form.get('e_thresh', 60)))
+        ra = max(1.0, float(request.form.get('e_ratio', 1.5)))
         for track in mid.tracks:
             for msg in track:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     if msg.velocity < th: msg.velocity = max(1, int(th - (th - msg.velocity) * ra))
-    out = io.BytesIO(); mid.save(file=out); out.seek(0)
-    return send_file(out, as_attachment=True, download_name=f"{tool}_output.mid", mimetype='audio/midi')
+
+    out = io.BytesIO()
+    mid.save(file=out)
+    out.seek(0)
+    return send_file(out, as_attachment=True, download_name=f"{tool}_processed.mid", mimetype='audio/midi')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
