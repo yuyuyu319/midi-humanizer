@@ -42,23 +42,19 @@ HTML_PAGE = """
         .a8-ad-container { margin: 20px auto; text-align: center; }
         .a8-ad-container img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #334155; }
 
-        /* --- ピアノロール & ベロシティビュー --- */
+        /* --- 改良：DAW仕様プレビュー --- */
         #preview-container { margin-top: 30px; display: none; }
-        .piano-roll-container { 
-            display: flex; 
-            height: 450px; 
-            background: #020617; 
-            border: 2px solid #334155; 
-            border-radius: 12px; 
-            overflow: hidden; 
-        }
-        .key-labels { width: 60px; height: 100%; background: #1e293b; border-right: 1px solid #334155; overflow: hidden; position: relative; flex-shrink: 0; }
-        .key-label { height: 12px; font-size: 9px; color: #94a3b8; border-bottom: 1px solid #0f172a; text-align: center; line-height: 12px; box-sizing: border-box; }
-        .key-label.black { background: #000; color: #eee; }
+        .preview-area { background: #020617; border: 2px solid #334155; border-radius: 12px; overflow: hidden; }
+        .velocity-pane { height: 80px; border-bottom: 1px solid #334155; overflow: hidden; background: #010413; position: relative; }
+        .piano-roll-body { display: flex; height: 350px; }
+        .key-labels { width: 50px; background: #1e293b; overflow: hidden; flex-shrink: 0; }
+        .key-label { height: 12px; font-size: 8px; color: #94a3b8; border-bottom: 1px solid #0f172a; text-align: center; line-height: 12px; }
+        .key-label.black { background: #000; }
         .scroll-area { flex-grow: 1; overflow: auto; position: relative; }
         canvas { display: block; }
         
         .content-section { margin: 40px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
+        .content-section h2 { border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 0; }
         .policy-section { margin: 60px auto 0; text-align: left; padding: 40px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; background: #0f172a; border-radius: 0 0 24px 24px; }
         .policy-section h2 { color: #f8fafc; font-size: 1.2rem; border-left: 4px solid var(--accent-blue); padding-left: 10px; margin-bottom: 15px; }
         .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; text-align: center; }
@@ -91,7 +87,7 @@ HTML_PAGE = """
                     <div class="form-group"><label>タイミング揺れ幅 (%)</label><input type="number" name="h_t_percent" id="h_t_percent" value="5" min="0" max="20" oninput="draw()"></div>
                 </div>
                 <div id="normalizer-panel" class="tool-panel">
-                    <h1>Normalizer</h1><p class="subtitle">全体の平均化と目標値への調整</p>
+                    <h1>Normalizer</h1><p class="subtitle">平均化と目標値への調整</p>
                     <div class="form-group" style="text-align: center;"><label><input type="checkbox" name="n_use_target" id="n_use_target" checked onchange="draw()"> 目標値を指定</label><input type="number" name="n_target_v" id="n_target_v" value="80" min="1" max="127" oninput="draw()"></div>
                     <div class="form-group"><label>圧縮率 (%)</label><input type="number" name="n_norm_rate" id="n_norm_rate" value="50" min="0" max="100" oninput="draw()"></div>
                 </div>
@@ -125,13 +121,18 @@ HTML_PAGE = """
 
                 <div id="preview-container">
                     <div class="legend">
-                        <div class="legend-item"><span style="background: rgba(255,255,255,0.2); border: 1px solid #475569;"></span>元の値</div>
-                        <div class="legend-item"><span id="legend-after-color" style="background: var(--accent-green);"></span>処理後 (●は重なり対策)</div>
+                        <div class="legend-item"><span style="background: rgba(255,255,255,0.2);"></span>元の値</div>
+                        <div class="legend-item"><span id="legend-after-color" style="background: var(--accent-green);"></span>処理後（●は先端）</div>
                     </div>
-                    <div class="piano-roll-container">
-                        <div class="key-labels" id="key-labels"></div>
-                        <div class="scroll-area" id="piano-scroll">
-                            <canvas id="piano-roll-canvas"></canvas>
+                    <div class="preview-area">
+                        <div class="velocity-pane" id="vel-scroll">
+                            <canvas id="velocity-canvas"></canvas>
+                        </div>
+                        <div class="piano-roll-body">
+                            <div class="key-labels" id="key-labels"></div>
+                            <div class="scroll-area" id="piano-scroll">
+                                <canvas id="piano-roll-canvas"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -139,17 +140,22 @@ HTML_PAGE = """
         </div>
 
         <div class="content-section">
-            <div id="humanizer-info" class="info-panel active"><h2>Humanizer</h2><p>機械的な打ち込みに人間らしい揺らぎを加えます。</p></div>
-            <div id="normalizer-info" class="info-panel"><h2>Normalizer</h2><p>全体のダイナミクスを均一化します。</p></div>
-            </div>
+            <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なリズムのズレとベロシティの揺らぎを加え、生命感を生成します。</p></div>
+            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、ダイナミクスを平均化します。</p></div>
+            <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを安全な範囲に制限し、音源の鳴りを安定させます。</p></div>
+            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、演奏のニュアンスを守りつつピークを抑制します。</p></div>
+            <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、トラック全体のメリハリを強調します。</p></div>
+        </div>
 
         <div style="margin: 20px auto; text-align: center; opacity: 0.5;">
             <script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script>
         </div>
 
         <div class="policy-section">
-            <h2>プライバシーポリシー</h2>
-            <p>サーバーにMIDIデータは保存されません。第三者配信広告がCookieを使用することがあります。</p>
+            <h2>プライバシーポリシー・利用規約</h2>
+            <h3>1. データの取り扱い</h3><p>アップロードされたMIDIファイルはサーバー内の一次メモリ上で即座に処理されます。ストレージへの保存は行われず、処理完了後に完全に消去されます。</p>
+            <h3>2. 広告とCookie</h3><p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。</p>
+            <h3>3. 免責事項</h3><p>利用者は自らが正当な権利を有するMIDIデータのみをアップロードするものとします。不具合によるデータ破損等の不利益について管理者は一切の責任を負いません。</p>
         </div>
         <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
     </main>
@@ -161,18 +167,21 @@ HTML_PAGE = """
 
 <script>
     const toolTypeInput = document.getElementById('tool_type');
-    const canvas = document.getElementById('piano-roll-canvas');
-    const ctx = canvas.getContext('2d');
+    const pCanvas = document.getElementById('piano-roll-canvas');
+    const vCanvas = document.getElementById('velocity-canvas');
+    const pCtx = pCanvas.getContext('2d');
+    const vCtx = vCanvas.getContext('2d');
     const keyLabels = document.getElementById('key-labels');
-    const scrollArea = document.getElementById('piano-scroll');
+    const pianoScroll = document.getElementById('piano-scroll');
+    const velScroll = document.getElementById('vel-scroll');
     let notes = [];
 
-    // 左端の鍵盤ラベル生成
+    // 鍵盤ラベル生成
     const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     for(let i=127; i>=0; i--) {
         const div = document.createElement('div');
         div.className = 'key-label' + (noteNames[i % 12].includes('#') ? ' black' : '');
-        div.innerText = noteNames[i % 12] + Math.floor(i / 12 - 1);
+        div.innerText = noteNames[i % 12] + (Math.floor(i / 12) - 1);
         keyLabels.appendChild(div);
     }
 
@@ -185,9 +194,7 @@ HTML_PAGE = """
         document.getElementById(type + '-info').classList.add('active');
         toolTypeInput.value = type;
         const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
-        const btn = document.getElementById('dl-btn');
-        btn.style.background = colors[type];
-        btn.style.color = (type === 'humanizer') ? 'black' : 'white';
+        document.getElementById('dl-btn').style.background = colors[type];
         document.getElementById('legend-after-color').style.background = colors[type];
         draw();
     }
@@ -206,11 +213,9 @@ HTML_PAGE = """
             }
         }
         document.getElementById('preview-container').style.display = 'block';
-        
-        // 読込後、中央音域へスクロール
         setTimeout(() => {
             const avg = notes.length ? notes.reduce((s,n)=>s+n.pitch, 0)/notes.length : 60;
-            scrollArea.scrollTop = (127 - avg) * 12 - 150;
+            pianoScroll.scrollTop = (127 - avg) * 12 - 150;
         }, 50);
         draw();
     });
@@ -219,12 +224,22 @@ HTML_PAGE = """
         if (notes.length === 0) return;
         const type = toolTypeInput.value;
         const rowH = 12; const noteW = 40; const velH = 80;
-        canvas.width = Math.max(640, notes.length * noteW + 100);
-        canvas.height = (128 * rowH) + velH + 20;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const totalW = Math.max(680, notes.length * noteW + 100);
 
-        const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
-        const activeColor = colors[type];
+        pCanvas.width = totalW; pCanvas.height = 128 * rowH;
+        vCanvas.width = totalW; vCanvas.height = velH;
+        pCtx.clearRect(0, 0, totalW, pCanvas.height);
+        vCtx.clearRect(0, 0, totalW, velH);
+
+        const activeColor = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' }[type];
+
+        // 4分グリッド（背景線）
+        pCtx.strokeStyle = "#1e293b";
+        vCtx.strokeStyle = "#1e293b";
+        for(let x=0; x<totalW; x+=noteW*4) {
+            pCtx.beginPath(); pCtx.moveTo(x, 0); pCtx.lineTo(x, pCanvas.height); pCtx.stroke();
+            vCtx.beginPath(); vCtx.moveTo(x, 0); vCtx.lineTo(x, velH); vCtx.stroke();
+        }
 
         notes.forEach((n, i) => {
             let newV = n.vel; let offsetX = 0;
@@ -251,27 +266,27 @@ HTML_PAGE = """
 
             const x = i * noteW + 20;
             const y = (127 - n.pitch) * rowH;
-            const vY = (128 * rowH) + 20;
 
-            // ピアノロール描画
-            ctx.fillStyle = "rgba(255,255,255,0.1)"; ctx.fillRect(x, y, noteW - 2, rowH - 1);
-            ctx.fillStyle = activeColor; ctx.globalAlpha = newV / 127;
-            ctx.fillRect(x + offsetX, y, noteW - 2, rowH - 1);
-            ctx.globalAlpha = 1.0;
-            ctx.beginPath(); ctx.arc(x + offsetX + (noteW/2), y + (rowH/2), 3, 0, Math.PI*2); ctx.fill();
+            // ピアノロール表示
+            pCtx.fillStyle = "rgba(255,255,255,0.1)"; pCtx.fillRect(x, y, noteW-4, rowH-1);
+            pCtx.fillStyle = activeColor; pCtx.globalAlpha = newV / 127;
+            pCtx.fillRect(x + offsetX, y, noteW-4, rowH-1);
+            pCtx.globalAlpha = 1.0;
+            // 先端チップ
+            pCtx.beginPath(); pCtx.arc(x + offsetX + (noteW-4), y + (rowH/2), 3, 0, Math.PI*2); pCtx.fill();
 
-            // 下部ベロシティバー描画
-            const hOrig = (n.vel / 127) * velH;
-            const hNew = (newV / 127) * velH;
-            ctx.fillStyle = "#475569"; ctx.fillRect(x, canvas.height - hOrig, 4, hOrig);
-            ctx.fillStyle = activeColor; ctx.fillRect(x + offsetX + 4, canvas.height - hNew, 4, hNew);
+            // 上部固定ベロシティバー
+            const hOrig = (n.vel/127)*velH; const hNew = (newV/127)*velH;
+            vCtx.fillStyle = "#334155"; vCtx.fillRect(x, velH - hOrig, 4, hOrig);
+            vCtx.fillStyle = activeColor; vCtx.fillRect(x + offsetX + 4, velH - hNew, 4, hNew);
         });
-
-        // ピアノロールとベロシティの境界線
-        ctx.strokeStyle = "#334155"; ctx.beginPath(); ctx.moveTo(0, 128*rowH); ctx.lineTo(canvas.width, 128*rowH); ctx.stroke();
     }
-    // 同時スクロール
-    scrollArea.onscroll = () => { keyLabels.scrollTop = scrollArea.scrollTop; };
+
+    // 同期スクロール
+    pianoScroll.onscroll = () => { 
+        keyLabels.scrollTop = pianoScroll.scrollTop; 
+        velScroll.scrollLeft = pianoScroll.scrollLeft; 
+    };
 </script>
 </body>
 </html>
@@ -333,7 +348,7 @@ def process():
     out = io.BytesIO()
     mid.save(file=out)
     out.seek(0)
-    return send_file(out, as_attachment=True, download_name=f"{tool}_processed.mid", mimetype='audio/midi')
+    return send_file(out, as_attachment=True, download_name=f"{tool}_output.mid", mimetype='audio/midi')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
