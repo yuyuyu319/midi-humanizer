@@ -7,56 +7,60 @@ from flask import Flask, request, send_file, make_response
 
 app = Flask(__name__)
 
-# --- デザイン & コンテンツ & 広告入れ替えHTML ---
+# --- 全要素統合HTML ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1100">
+    <meta name="viewport" content="width=device-width, initial-scale=1100">
     <title>MIDI Tools</title>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent-green: #00e676; --accent-blue: #00b0ff; --accent-orange: #ff9100; --accent-purple: #d500f9; --accent-red: #ff5252; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin:0; line-height: 1.6; }
         .page-wrapper { display: flex; justify-content: center; align-items: flex-start; gap: 20px; padding: 40px 0; margin: 0 auto; width: 1080px; }
         .side-ad-left, .side-ad-right { width: 120px; }
-        .main-content { width: 700px; }
-        .card { background: var(--card); padding: 30px; border-radius: 24px; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        .main-content { flex: 1; max-width: 850px; min-width: 320px; }
+        .card { background: var(--card); padding: 40px; border-radius: 24px; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
         .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 25px; }
-        .tab-btn { padding: 10px 15px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: #94a3b8; cursor: pointer; font-weight: bold; }
+        .tab-btn { padding: 12px 20px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: #94a3b8; cursor: pointer; font-weight: bold; }
         .tab-btn.active.humanizer { background: var(--accent-green); color: black; }
         .tab-btn.active.normalizer { background: var(--accent-blue); color: white; }
         .tab-btn.active.limiter { background: var(--accent-orange); color: white; }
         .tab-btn.active.compressor { background: var(--accent-purple); color: white; }
         .tab-btn.active.expander { background: var(--accent-red); color: white; }
-        .tool-panel { display: none; }
-        .tool-panel.active { display: block; }
-        h1 { font-size: 2.2rem; margin-bottom: 5px; font-weight: 800; text-align: center; }
+        .tool-panel, .info-panel { display: none; }
+        .tool-panel.active, .info-panel.active { display: block; }
+        h1 { font-size: 2.5rem; margin-bottom: 5px; font-weight: 800; text-align: center; }
         .subtitle { color: #94a3b8; margin-bottom: 25px; font-size: 1rem; text-align: center; }
         .form-group { margin: 20px auto; text-align: left; max-width: 400px; }
         label { display: block; font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; font-weight: 600; }
         input[type="number"] { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 10px; font-size: 1.1rem; box-sizing: border-box; }
         button.process-btn { border: none; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; font-size: 1.1rem; margin: 10px auto; display: block; transition: 0.2s; }
         
-        /* ボタンの真上に小さいやつ3つ */
         .small-ad-row { display: flex; justify-content: center; gap: 8px; margin: 30px auto 15px; }
-        .small-ad-row img { border-radius: 4px; border: 1px solid #334155; }
-        
-        /* ボタンの真下にでかいやつ */
         .a8-large-banner-main { margin: 20px auto; text-align: center; }
         .a8-large-banner-main img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #334155; }
+        .footer-ad-large { margin: 40px auto; text-align: center; }
 
+        .content-section { margin: 40px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
+        .content-section h2 { border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 0; }
+        
+        /* プライバシーポリシー詳細用スタイル */
+        .policy-section { margin: 60px auto 0; text-align: left; padding: 40px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; background: #0f172a; border-radius: 0 0 24px 24px; }
+        .policy-section h2 { color: #f8fafc; font-size: 1.2rem; margin-top: 20px; border-left: 4px solid var(--accent-blue); padding-left: 10px; }
+        .policy-section p { margin: 10px 0; }
+
+        .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; text-align: center; }
         #preview-container { margin-top: 25px; display: none; text-align: left; }
         .scroll-wrapper { width: 100%; overflow-x: auto; background: #0f172a; border: 1px solid #334155; border-radius: 8px; }
         canvas { display: block; }
-        .footer-copy { margin-top: 30px; font-size: 0.75rem; color: #475569; padding-bottom: 30px; text-align: center; }
     </style>
 </head>
 <body>
 <div class="page-wrapper">
     <aside class="side-ad-left">
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+BFZZEA+2PEO+1I7QCH" rel="nofollow">
-        <img border="0" width="120" height="600" src="https://www23.a8.net/svt/bgt?aid=260124628692&wid=001&eno=01&mid=s00000012624009106000&mc=1" alt=""></a>
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+BFZZEA+2PEO+1I7QCH" rel="nofollow"><img border="0" width="120" height="600" src="https://www23.a8.net/svt/bgt?aid=260124628692&wid=001&eno=01&mid=s00000012624009106000&mc=1"></a>
     </aside>
 
     <main class="main-content">
@@ -110,7 +114,7 @@ HTML_PAGE = """
 
                 <div class="a8-large-banner-main">
                     <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" rel="nofollow">
-                    <img border="0" width="936" height="120" src="https://www26.a8.net/svt/bgt?aid=260124628616&wid=001&eno=01&mid=s00000025975001025000&mc=1" alt=""></a>
+                    <img border="0" width="936" height="120" src="https://www26.a8.net/svt/bgt?aid=260124628616&wid=001&eno=01&mid=s00000025975001025000&mc=1"></a>
                 </div>
 
                 <div id="preview-container">
@@ -118,13 +122,43 @@ HTML_PAGE = """
                 </div>
             </form>
         </div>
+
+        <div class="content-section">
+            <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なタイミングと強弱の揺らぎを加え、人間らしい生命感のあるグルーヴを生成します。</p></div>
+            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>平均音量を算出し、ダイナミクスを整えます。バラつきを抑えつつ音楽的なニュアンスを維持します。</p></div>
+            <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを指定範囲内に収めます。ピークを抑え、音源の鳴りを安定させます。</p></div>
+            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>スレッショルドを超えた信号を比率で減衰させます。強すぎる打鍵を自然に抑えます。</p></div>
+            <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに小さくすることで、トラック全体のメリハリを強調します。</p></div>
+        </div>
+
+        <div class="footer-ad-large">
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+A6R1F6+5KFA+63OY9" rel="nofollow"><img border="0" width="936" height="120" src="https://www26.a8.net/svt/bgt?aid=260124628616&wid=001&eno=01&mid=s00000025975001025000&mc=1"></a>
+        </div>
+
         <div style="margin: 20px auto; text-align: center; opacity: 0.5;"><script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script></div>
+
+        <div class="policy-section">
+            <h2>プライバシーポリシー</h2>
+            <p>MIDI Tools（以下「当サイト」）は、ユーザーのプライバシー保護を最優先事項として運営されています。</p>
+            
+            <h3>データの収集と使用について</h3>
+            <p>当サイトのMIDI処理機能において、アップロードされたMIDIファイルはサーバー内のメモリ上で一時的に処理されますが、ストレージ等に永続的に保存されることはありません。処理完了後または通信終了後、データは即座に破棄されます。</p>
+
+            <h3>広告の配信について</h3>
+            <p>当サイトでは、第三者配信事業者（忍者AdMax、A8.net等）による広告サービスを利用しています。これらの広告配信事業者は、ユーザーの興味に応じた商品やサービスの広告を表示するため、当サイトや他サイトへのアクセスに関する情報（氏名、住所、メール アドレス、電話番号は含まれません）を使用することがあります。</p>
+            
+            <h3>Cookie（クッキー）の使用について</h3>
+            <p>当サイトおよび広告配信事業者は、広告配信やトラフィック分析のためにCookieを使用する場合があります。ユーザーはブラウザの設定によりCookieを無効にすることが可能です。</p>
+
+            <h3>免責事項</h3>
+            <p>当サイトを利用したことにより生じた、いかなる損害についても当サイト管理者は一切の責任を負いません。MIDI変換結果の正確性については細心の注意を払っておりますが、自己責任での利用をお願いいたします。</p>
+        </div>
+        
         <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
     </main>
 
     <aside class="side-ad-right">
-        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+BOC1V6+F14+6AC5D" rel="nofollow">
-        <img border="0" width="120" height="600" src="https://www21.a8.net/svt/bgt?aid=260124628706&wid=001&eno=01&mid=s00000001948001056000&mc=1"></a>
+        <a href="https://px.a8.net/svt/ejp?a8mat=4AVDG4+BOC1V6+F14+6AC5D" rel="nofollow"><img border="0" width="120" height="600" src="https://www21.a8.net/svt/bgt?aid=260124628706&wid=001&eno=01&mid=s00000001948001056000&mc=1"></a>
     </aside>
 </div>
 
@@ -133,8 +167,10 @@ HTML_PAGE = """
     function switchTab(type) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.info-panel').forEach(p => p.classList.remove('active'));
         document.querySelector('.tab-btn.' + type).classList.add('active');
         document.getElementById(type + '-panel').classList.add('active');
+        document.getElementById(type + '-info').classList.add('active');
         toolTypeInput.value = type;
         const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
         const btn = document.getElementById('dl-btn');
@@ -207,9 +243,9 @@ HTML_PAGE = """
 </html>
 """
 
+# --- Flask サーバーサイドロジック ---
 @app.route('/')
-def index():
-    return make_response(HTML_PAGE)
+def index(): return make_response(HTML_PAGE)
 
 @app.route('/process', methods=['POST'])
 def process():
