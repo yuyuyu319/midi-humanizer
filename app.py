@@ -7,21 +7,19 @@ from flask import Flask, request, send_file, make_response
 
 app = Flask(__name__)
 
-# --- デザイン & コンテンツ & タブ連動HTML ---
+# --- デザイン & コンテンツ & 広告実装HTML ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIDI Toolkit | DAW用オールインワンMIDI処理ツール</title>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4758959657594096" crossorigin="anonymous"></script>
+    <title>MIDI Tools</title>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent-green: #00e676; --accent-blue: #00b0ff; --accent-orange: #ff9100; --accent-purple: #d500f9; --accent-red: #ff5252; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; text-align: center; padding: 50px 20px; margin:0; line-height: 1.6; }
         .card { background: var(--card); padding: 40px; border-radius: 24px; max-width: 850px; margin: auto; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
         
-        /* タブメニュー */
         .tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 30px; }
         .tab-btn { padding: 12px 20px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: #94a3b8; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .tab-btn.active.humanizer { background: var(--accent-green); color: black; border-color: var(--accent-green); }
@@ -42,17 +40,18 @@ HTML_PAGE = """
         button.process-btn { border: none; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; font-size: 1.1rem; margin-top: 20px; transition: 0.2s; }
         button.process-btn:hover { transform: translateY(-2px); opacity: 0.9; }
 
-        /* プレビューエリア */
         #preview-container { margin-top: 30px; display: none; text-align: left; }
         .scroll-wrapper { width: 100%; overflow-x: auto; background: #0f172a; border: 1px solid #334155; border-radius: 8px; }
         canvas { display: block; }
         .legend { display: flex; justify-content: center; gap: 20px; font-size: 0.8rem; margin: 15px 0; color: #94a3b8; }
         .legend-item span { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; }
 
+        .ad-container { margin: 30px auto; min-height: 100px; display: flex; justify-content: center; align-items: center; }
+
         .content-section { max-width: 850px; margin: 60px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
         .content-section h2 { border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 40px; }
         .policy-section { max-width: 850px; margin: 80px auto 0; text-align: left; padding: 30px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; }
-        .policy-section h2 { color: #f8fafc; font-size: 1.1rem; border-left: 4px solid var(--accent-blue); padding-left: 10px; margin-bottom: 15px; }
+        .policy-section h2 { color: #f8fafc; font-size: 1.1rem; border-left: 4px solid #475569; padding-left: 10px; margin-bottom: 15px; }
         .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; }
     </style>
 </head>
@@ -74,43 +73,58 @@ HTML_PAGE = """
             </div>
 
             <div id="humanizer-panel" class="tool-panel active">
-                <h1 style="color: var(--accent-green)">MIDI Humanizer</h1>
+                <h1 style="color: var(--accent-green)">Humanizer</h1>
                 <p class="subtitle">計算された音楽的な「揺らぎ」を打ち込みに。</p>
                 <div class="form-group"><label>ベロシティ揺れ幅 (± 0-50)</label><input type="number" name="h_v_range" id="h_v_range" value="20"></div>
                 <div class="form-group"><label>タイミング揺れ幅 (%)</label><input type="number" name="h_t_percent" id="h_t_percent" value="5"></div>
-                <button type="submit" class="process-btn" style="background: var(--accent-green); color: black;">HUMANIZE & DOWNLOAD</button>
+                <div class="ad-container">
+                    <script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script>
+                </div>
+                <button type="submit" class="process-btn" style="background: var(--accent-green); color: black;">PROCESS & DOWNLOAD</button>
             </div>
 
             <div id="normalizer-panel" class="tool-panel">
-                <h1 style="color: var(--accent-blue)">MIDI Normalizer</h1>
-                <p class="subtitle">バラつきを抑え、狙ったダイナミクスへ調整する。</p>
-                <div class="form-group" style="text-align: center;"><label style="cursor:pointer;"><input type="checkbox" name="n_use_target" id="n_use_target" checked> 目標ベロシティを指定</label><input type="number" name="n_target_v" id="n_target_v" value="80"></div>
+                <h1 style="color: var(--accent-blue)">Normalizer</h1>
+                <p class="subtitle">全体の音量を平均化しシフト調整。</p>
+                <div class="form-group" style="text-align: center;"><label style="cursor:pointer;"><input type="checkbox" name="n_use_target" id="n_use_target" checked> 目標値を指定</label><input type="number" name="n_target_v" id="n_target_v" value="80"></div>
                 <div class="form-group"><label>圧縮率 (%)</label><input type="number" name="n_norm_rate" id="n_norm_rate" value="50"></div>
-                <button type="submit" class="process-btn" style="background: var(--accent-blue); color: white;">NORMALIZE & DOWNLOAD</button>
+                <div class="ad-container">
+                    <script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script>
+                </div>
+                <button type="submit" class="process-btn" style="background: var(--accent-blue); color: white;">PROCESS & DOWNLOAD</button>
             </div>
 
             <div id="limiter-panel" class="tool-panel">
-                <h1 style="color: var(--accent-orange)">MIDI Limiter</h1>
-                <p class="subtitle">ベロシティを一定範囲内に制限する。</p>
+                <h1 style="color: var(--accent-orange)">Limiter</h1>
+                <p class="subtitle">ベロシティを一定範囲内に制限。</p>
                 <div class="form-group"><label>最小値 (Min)</label><input type="number" name="l_min" id="l_min" value="40"></div>
                 <div class="form-group"><label>最大値 (Max)</label><input type="number" name="l_max" id="l_max" value="100"></div>
-                <button type="submit" class="process-btn" style="background: var(--accent-orange); color: white;">LIMIT & DOWNLOAD</button>
+                <div class="ad-container">
+                    <script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script>
+                </div>
+                <button type="submit" class="process-btn" style="background: var(--accent-orange); color: white;">PROCESS & DOWNLOAD</button>
             </div>
 
             <div id="compressor-panel" class="tool-panel">
-                <h1 style="color: var(--accent-purple)">MIDI Compressor</h1>
-                <p class="subtitle">大きい音を抑え、ダイナミクスを凝縮する。</p>
+                <h1 style="color: var(--accent-purple)">Compressor</h1>
+                <p class="subtitle">ピーク音を比率で圧縮。</p>
                 <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="c_thresh" id="c_thresh" value="80"></div>
                 <div class="form-group"><label>レシオ (比率 1.0-10.0)</label><input type="number" name="c_ratio" id="c_ratio" value="2.0" step="0.1"></div>
-                <button type="submit" class="process-btn" style="background: var(--accent-purple); color: white;">COMPRESS & DOWNLOAD</button>
+                <div class="ad-container">
+                    <script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script>
+                </div>
+                <button type="submit" class="process-btn" style="background: var(--accent-purple); color: white;">PROCESS & DOWNLOAD</button>
             </div>
 
             <div id="expander-panel" class="tool-panel">
-                <h1 style="color: var(--accent-red)">MIDI Expander</h1>
-                <p class="subtitle">小さい音をさらに下げ、メリハリを出す。</p>
+                <h1 style="color: var(--accent-red)">Expander</h1>
+                <p class="subtitle">小さい音をさらに減衰させメリハリを出す。</p>
                 <div class="form-group"><label>スレッショルド (1-127)</label><input type="number" name="e_thresh" id="e_thresh" value="60"></div>
                 <div class="form-group"><label>レシオ (比率 1.0-10.0)</label><input type="number" name="e_ratio" id="e_ratio" value="1.5" step="0.1"></div>
-                <button type="submit" class="process-btn" style="background: var(--accent-red); color: white;">EXPAND & DOWNLOAD</button>
+                <div class="ad-container">
+                    <script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script>
+                </div>
+                <button type="submit" class="process-btn" style="background: var(--accent-red); color: white;">PROCESS & DOWNLOAD</button>
             </div>
 
             <div id="preview-container">
@@ -125,33 +139,33 @@ HTML_PAGE = """
 
     <div class="content-section">
         <div id="humanizer-info" class="info-panel active">
-            <h2 style="color: var(--accent-green)">MIDIヒューマナイザーのメリット</h2>
-            <p>グリッドに完璧に沿ったリズムと一定の音量は、楽曲に機械的な印象を与えます。本ツールは、人間が実際に演奏した際に生じる微細な「強弱のムラ」と「タイミングのズレ」をシミュレートし、トラックに自然なグルーヴと生命力を付加します。</p>
+            <h2 style="color: var(--accent-green)">Humanizer の効果</h2>
+            <p>人間が演奏した際に生じる微細な「強弱のムラ」と「タイミングのズレ」をシミュレートし、トラックに自然なグルーヴを付加します。</p>
         </div>
         <div id="normalizer-info" class="info-panel">
-            <h2 style="color: var(--accent-blue)">MIDIノーマライザーのメリット</h2>
-            <p>本ツールはまず全体の平均値を算出し、指定した圧縮率で各ノートを平均に近づけます。その後、指定された目標値がある場合は、平均値との差分を全ノートに適用します。これにより、音楽的なニュアンスを破壊することなく、確実な音量コントロールが可能です。</p>
+            <h2 style="color: var(--accent-blue)">Normalizer の効果</h2>
+            <p>全体の平均値を算出し、指定した圧縮率で各ノートを平均に近づけます。音楽的なニュアンスを保ったまま音量を整えます。</p>
         </div>
         <div id="limiter-info" class="info-panel">
-            <h2 style="color: var(--accent-orange)">MIDIリミッターのメリット</h2>
-            <p>強すぎる音を抑え、弱すぎる音を底上げすることで、音源ソフトのポテンシャルを最大限に引き出し、ミックスを安定させます。ベロシティが最大値（127）に達した際の不自然な音色変化を防ぐのにも有効です。</p>
+            <h2 style="color: var(--accent-orange)">Limiter の効果</h2>
+            <p>強すぎる音を抑え、弱すぎる音を底上げします。音源ソフトのポテンシャルを安定させ、ミックスを容易にします。</p>
         </div>
         <div id="compressor-info" class="info-panel">
-            <h2 style="color: var(--accent-purple)">MIDIコンプレッサーのメリット</h2>
-            <p>オーディオ用のコンプレッサーと同様に、スレッショルドを超えたベロシティをレシオに基づいて圧縮します。リミッターが上限で強制的に切るのに対し、コンプレッサーは超過分を「比率」で減衰させるため、演奏のニュアンスを保ったままピークを自然に抑えることができます。</p>
+            <h2 style="color: var(--accent-purple)">Compressor の効果</h2>
+            <p>超過分を「比率」で減衰させるため、演奏のニュアンスを保ったままピークを自然に抑えることができます。</p>
         </div>
         <div id="expander-info" class="info-panel">
-            <h2 style="color: var(--accent-red)">MIDIエキスパンダーのメリット</h2>
-            <p>エキスパンダーはコンプレッサーの逆の働きをします。スレッショルド値を下回る微細な音をレシオに基づいてさらに減衰させることで、アクセントの付いた音を際立たせ、トラックに「キレ」と「メリハリ」を与えます。</p>
+            <h2 style="color: var(--accent-red)">Expander の効果</h2>
+            <p>スレッショルドを下回る音をさらに減衰させることで、アクセントを際立たせ、トラックにメリハリを与えます。</p>
         </div>
     </div>
 
     <div class="policy-section">
         <h2>プライバシーポリシー</h2>
         <p><strong>データ処理：</strong>アップロードされたMIDIファイルはサーバーに保存されず、メモリ内で即座に処理・返送されます。プライバシーは完全に守られます。</p>
-        <p><strong>広告配信：</strong>当サイトではGoogle AdSense等の第三者配信事業者がCookieを利用して広告を配信する場合があります。</p>
+        <p><strong>広告配信：</strong>当サイトでは第三者配信事業者がCookieを利用して広告を配信する場合があります。</p>
     </div>
-    <div class="footer-copy">&copy; 2026 MIDI Toolkit. All rights reserved.</div>
+    <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
 
     <script>
         const fileInput = document.getElementById('file-input');
@@ -241,7 +255,7 @@ HTML_PAGE = """
 </html>
 """
 
-# --- サーバーサイド共通処理 ---
+# --- サーバーサイドロジック ---
 @app.route('/')
 def index():
     return make_response(HTML_PAGE)
@@ -251,7 +265,6 @@ def process():
     tool = request.form.get('tool_type')
     file = request.files.get('midi_file')
     if not file: return "File missing", 400
-    
     midi_stream = io.BytesIO(file.read())
     try: mid = mido.MidiFile(file=midi_stream)
     except: return "Invalid MIDI", 400
@@ -265,7 +278,6 @@ def process():
                 if msg.type == 'note_on' and msg.velocity > 0:
                     msg.velocity = max(1, min(127, msg.velocity + random.randint(-v_range, v_range)))
                     msg.time = max(0, msg.time + random.randint(-max_tick_shift, max_tick_shift))
-    
     elif tool == 'normalizer':
         rate = int(request.form.get('n_norm_rate', 50)) / 100.0
         use_target = request.form.get('n_use_target') == 'on'
@@ -279,21 +291,18 @@ def process():
                         cv = msg.velocity + (avg_v - msg.velocity) * rate
                         fv = cv + (target_v - avg_v) if use_target else cv
                         msg.velocity = max(1, min(127, int(fv)))
-
     elif tool == 'limiter':
         min_v, max_v = int(request.form.get('l_min', 40)), int(request.form.get('l_max', 100))
         for track in mid.tracks:
             for msg in track:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     msg.velocity = max(min_v, min(max_v, msg.velocity))
-
     elif tool == 'compressor':
         th, ra = int(request.form.get('c_thresh', 80)), float(request.form.get('c_ratio', 2.0))
         for track in mid.tracks:
             for msg in track:
                 if msg.type == 'note_on' and msg.velocity > 0:
                     if msg.velocity > th: msg.velocity = int(th + (msg.velocity - th) / ra)
-
     elif tool == 'expander':
         th, ra = int(request.form.get('e_thresh', 60)), float(request.form.get('e_ratio', 1.5))
         for track in mid.tracks:
@@ -305,4 +314,5 @@ def process():
     return send_file(out, as_attachment=True, download_name=f"{tool}_output.mid", mimetype='audio/midi')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
