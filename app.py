@@ -123,20 +123,22 @@ HTML_PAGE = """
         </div>
 
         <div class="content-section">
-            <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なタイミングと強弱の揺らぎを加え、生命感を生成します。</p></div>
-            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>音量を音楽的に整え、音のバラつきを解消します。</p></div>
-            <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを安全な範囲に収め、音源の鳴りを安定させます。</p></div>
-            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、演奏のニュアンスを守りつつピークを抑制します。</p></div>
+            <div id="humanizer-info" class="info-panel active"><h2>Humanizer の効果</h2><p>微細なズレと強弱のムラを加え、人間らしい生命感を生成します。</p></div>
+            <div id="normalizer-info" class="info-panel"><h2>Normalizer の効果</h2><p>全体の平均音量を算出し、ダイナミクスを音楽的に整えます。</p></div>
+            <div id="limiter-info" class="info-panel"><h2>Limiter の効果</h2><p>ベロシティを安全な範囲に制限し、音源の鳴りを安定させます。</p></div>
+            <div id="compressor-info" class="info-panel"><h2>Compressor の効果</h2><p>超過分を比率で減衰させ、ニュアンスを守りつつピークを抑制します。</p></div>
             <div id="expander-info" class="info-panel"><h2>Expander の効果</h2><p>小さい音をさらに引き下げ、トラック全体のメリハリを強調します。</p></div>
         </div>
 
-        <div style="margin: 20px auto; text-align: center; opacity: 0.5;"><script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script></div>
+        <div style="margin: 20px auto; text-align: center; opacity: 0.5;">
+            <script src="https://adm.shinobi.jp/s/475f193df1f880db04b8d1f6299d0192"></script>
+        </div>
 
         <div class="policy-section">
             <h2>プライバシーポリシー・利用規約</h2>
             <h3>1. データの取り扱い</h3><p>アップロードされたMIDIファイルはサーバー内の一次メモリ上で即座に処理されます。ストレージへの保存は行われず、処理完了後に完全に消去されます。</p>
-            <h3>2. 広告とCookie</h3><p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。</p>
-            <h3>3. 免責事項</h3><p>権利侵害に関するトラブルについて当サイトは一切関与せず、全責任は利用者自身が負うものとします。不具合によるデータ破損等の不利益について管理者は一切の責任を負いません。</p>
+            <h3>2. 広告とCookie</h3><p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。これにより得られる情報は匿名のものであり個人を特定しません。</p>
+            <h3>3. 免責事項</h3><p>利用者は自らが正当な権利を有するMIDIデータのみをアップロードするものとします。権利侵害や、不具合によるデータ破損等のいかなる損害についても当サイト管理者は責任を負いません。</p>
         </div>
         <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
     </main>
@@ -238,7 +240,6 @@ def process():
     try: mid = mido.MidiFile(file=midi_stream)
     except: return "Invalid MIDI", 400
     
-    # Python側でも負の値をガード
     if tool == 'humanizer':
         v_range = max(0, int(request.form.get('h_v_range', 20)))
         t_percent = max(0, int(request.form.get('h_t_percent', 5)))
