@@ -14,7 +14,7 @@ HTML_PAGE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1100">
-    <title>MIDI Tools - Piano Roll Dynamics</title>
+    <title>MIDI Tools - Dynamics Processor</title>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent-green: #00e676; --accent-blue: #00b0ff; --accent-orange: #ff9100; --accent-purple: #d500f9; --accent-red: #ff5252; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin:0; line-height: 1.6; }
@@ -41,23 +41,18 @@ HTML_PAGE = """
         .small-ad-row img { border-radius: 4px; border: 1px solid #334155; }
         .a8-ad-container { margin: 20px auto; text-align: center; }
         .a8-ad-container img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #334155; }
-
-        /* --- ピアノロール & ベロシティビュー --- */
-        #preview-container { margin-top: 30px; display: none; }
-        .preview-area { background: #020617; border: 2px solid #334155; border-radius: 12px; overflow: hidden; }
-        .velocity-pane { height: 80px; border-bottom: 1px solid #334155; overflow: hidden; background: #010413; position: relative; }
-        .piano-roll-body { display: flex; height: 350px; }
-        .key-labels { width: 50px; background: #1e293b; overflow: hidden; flex-shrink: 0; }
-        .key-label { height: 12px; font-size: 8px; color: #94a3b8; border-bottom: 1px solid #0f172a; text-align: center; line-height: 12px; }
-        .key-label.black { background: #000; }
-        .scroll-area { flex-grow: 1; overflow: auto; position: relative; }
-        canvas { display: block; }
-        
         .content-section { margin: 40px auto; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 20px; border: 1px solid #1e293b; }
         .content-section h2 { border-bottom: 2px solid #334155; padding-bottom: 10px; margin-top: 0; }
         .policy-section { margin: 60px auto 0; text-align: left; padding: 40px; border-top: 1px solid #334155; color: #94a3b8; font-size: 0.85rem; background: #0f172a; border-radius: 0 0 24px 24px; }
         .policy-section h2 { color: #f8fafc; font-size: 1.2rem; border-left: 4px solid var(--accent-blue); padding-left: 10px; margin-bottom: 15px; }
         .footer-copy { margin-top: 40px; font-size: 0.75rem; color: #475569; padding-bottom: 40px; text-align: center; }
+        
+        /* プレビューエリア */
+        #preview-container { margin-top: 30px; display: none; }
+        .scroll-wrapper { width: 100%; overflow-x: auto; background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 10px; box-sizing: border-box; }
+        canvas { display: block; }
+        .legend { display: flex; justify-content: center; gap: 20px; font-size: 0.8rem; margin-bottom: 10px; color: #94a3b8; }
+        .legend-item span { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -120,20 +115,11 @@ HTML_PAGE = """
                 </div>
 
                 <div id="preview-container">
-                    <div id="preview-legend" style="display:flex; justify-content:center; gap:20px; font-size:0.8rem; margin-bottom:10px; color:#94a3b8;">
-                        <div style="display:flex; align-items:center; gap:5px;"><span id="after-indicator" style="width:10px; height:10px; border-radius:50%;"></span>処理後ベロシティ（●は先端）</div>
+                    <div class="legend">
+                        <div class="legend-item"><span style="background: #475569;"></span>元の値</div>
+                        <div class="legend-item"><span id="legend-after-color" style="background: var(--accent-green);"></span>処理後</div>
                     </div>
-                    <div class="preview-area">
-                        <div class="velocity-pane" id="vel-scroll">
-                            <canvas id="velocity-canvas"></canvas>
-                        </div>
-                        <div class="piano-roll-body">
-                            <div class="key-labels" id="key-labels"></div>
-                            <div class="scroll-area" id="piano-scroll">
-                                <canvas id="piano-roll-canvas"></canvas>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="scroll-wrapper"><canvas id="piano-roll-canvas"></canvas></div>
                 </div>
             </form>
         </div>
@@ -154,7 +140,7 @@ HTML_PAGE = """
             <h2>プライバシーポリシー・利用規約</h2>
             <h3>1. データの取り扱い</h3><p>アップロードされたMIDIファイルはサーバー内の一次メモリ上で即座に処理されます。ストレージへの保存は行われず、処理完了後に完全に消去されます。</p>
             <h3>2. 広告とCookie</h3><p>当サイトはA8.net、忍者AdMax等の第三者配信広告を利用しており、適切な広告表示のためCookieを使用することがあります。</p>
-            <h3>3. 免責事項</h3><p>利用者は自らが正当な権利を有するMIDIデータのみをアップロードするものとする。不具合によるデータ破損等の不利益について管理者は一切の責任を負いません。</p>
+            <h3>3. 免責事項</h3><p>利用者は自らが正当な権利を有するMIDIデータのみをアップロードするものとします。不具合によるデータ破損等の不利益について管理者は一切の責任を負いません。</p>
         </div>
         <div class="footer-copy">&copy; 2026 MIDI Tools.</div>
     </main>
@@ -166,22 +152,9 @@ HTML_PAGE = """
 
 <script>
     const toolTypeInput = document.getElementById('tool_type');
-    const pCanvas = document.getElementById('piano-roll-canvas');
-    const vCanvas = document.getElementById('velocity-canvas');
-    const pCtx = pCanvas.getContext('2d');
-    const vCtx = vCanvas.getContext('2d');
-    const keyLabels = document.getElementById('key-labels');
-    const pianoScroll = document.getElementById('piano-scroll');
-    const velScroll = document.getElementById('vel-scroll');
+    const canvas = document.getElementById('piano-roll-canvas');
+    const ctx = canvas.getContext('2d');
     let notes = [];
-
-    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    for(let i=127; i>=0; i--) {
-        const div = document.createElement('div');
-        div.className = 'key-label' + (noteNames[i % 12].includes('#') ? ' black' : '');
-        div.innerText = noteNames[i % 12] + (Math.floor(i / 12) - 1);
-        keyLabels.appendChild(div);
-    }
 
     function switchTab(type) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -193,7 +166,7 @@ HTML_PAGE = """
         toolTypeInput.value = type;
         const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
         document.getElementById('dl-btn').style.background = colors[type];
-        document.getElementById('after-indicator').style.background = colors[type];
+        document.getElementById('legend-after-color').style.background = colors[type];
         draw();
     }
 
@@ -203,7 +176,7 @@ HTML_PAGE = """
         const buffer = await file.arrayBuffer();
         const view = new DataView(buffer);
         notes = [];
-        for (let i = 0; i < view.byteLength - 3; i++) {
+        for (let i = 0; i < view.byteLength - 2; i++) {
             if ((view.getUint8(i) & 0xF0) === 0x90) {
                 const pitch = view.getUint8(i + 1);
                 const vel = view.getUint8(i + 2);
@@ -211,39 +184,24 @@ HTML_PAGE = """
             }
         }
         document.getElementById('preview-container').style.display = 'block';
-        setTimeout(() => {
-            const avg = notes.length ? notes.reduce((s,n)=>s+n.pitch, 0)/notes.length : 60;
-            pianoScroll.scrollTop = (127 - avg) * 12 - 150;
-        }, 50);
         draw();
     });
 
     function draw() {
         if (notes.length === 0) return;
         const type = toolTypeInput.value;
-        const rowH = 12; const noteW = 40; const velH = 80;
-        const totalW = Math.max(680, notes.length * noteW + 20);
-
-        pCanvas.width = totalW; pCanvas.height = 128 * rowH;
-        vCanvas.width = totalW; vCanvas.height = velH;
-        pCtx.clearRect(0, 0, totalW, pCanvas.height);
-        vCtx.clearRect(0, 0, totalW, velH);
-
-        const activeColor = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' }[type];
-
-        // 拍線描画（4分音符ごと）
-        pCtx.strokeStyle = "#1e293b";
-        vCtx.strokeStyle = "#1e293b";
-        for(let x=0; x<totalW; x+=noteW*4) {
-            pCtx.beginPath(); pCtx.moveTo(x, 0); pCtx.lineTo(x, pCanvas.height); pCtx.stroke();
-            vCtx.beginPath(); vCtx.moveTo(x, 0); vCtx.lineTo(x, velH); vCtx.stroke();
-        }
+        const barWidth = 12; const pianoRollHeight = 120; const velocityLaneHeight = 80;
+        canvas.width = Math.max(680, notes.length * barWidth);
+        canvas.height = pianoRollHeight + velocityLaneHeight + 10;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const colors = { humanizer: '#00e676', normalizer: '#00b0ff', limiter: '#ff9100', compressor: '#d500f9', expander: '#ff5252' };
+        const activeColor = colors[type];
 
         notes.forEach((n, i) => {
             let newV = n.vel; let offsetX = 0;
             if (type === 'humanizer') {
                 newV += n.rV * (parseInt(document.getElementById('h_v_range').value) || 0);
-                offsetX = n.rT * (parseInt(document.getElementById('h_t_percent').value) || 0) * 0.8;
+                offsetX = n.rT * (parseInt(document.getElementById('h_t_percent').value) || 0) * 0.5;
             } else if (type === 'normalizer') {
                 const rate = (parseInt(document.getElementById('n_norm_rate').value) || 0) / 100;
                 const avg = notes.reduce((s, x) => s + x.vel, 0) / notes.length;
@@ -261,32 +219,17 @@ HTML_PAGE = """
                 if (newV < th) newV = th - (th - newV) * ra;
             }
             newV = Math.max(1, Math.min(127, newV));
-
-            // X位置を完全に同期させる
-            const xBase = i * noteW + 20;
-            const xDraw = xBase + offsetX;
-            const yNote = (127 - n.pitch) * rowH;
-
-            // ピアノロール描画（残像なし）
-            pCtx.fillStyle = activeColor;
-            pCtx.globalAlpha = newV / 127;
-            pCtx.fillRect(xDraw, yNote, noteW-4, rowH-1);
-            pCtx.globalAlpha = 1.0;
-
-            // ベロシティバー描画（重なり対策：先端に円形）
-            const barH = (newV / 127) * (velH - 10);
-            vCtx.fillStyle = activeColor;
-            vCtx.fillRect(xDraw + (noteW/2) - 3, velH - barH, 4, barH);
-            vCtx.beginPath();
-            vCtx.arc(xDraw + (noteW/2) - 1, velH - barH, 4, 0, Math.PI * 2);
-            vCtx.fill();
+            const x = i * barWidth;
+            
+            // ピアノロール部
+            ctx.fillStyle = '#334155'; ctx.fillRect(x, pianoRollHeight - (n.pitch/127)*pianoRollHeight, barWidth-2, 4);
+            ctx.fillStyle = activeColor; ctx.fillRect(x + offsetX, pianoRollHeight - (n.pitch/127)*pianoRollHeight, barWidth-2, 4);
+            
+            // ベロシティレーン部
+            ctx.fillStyle = '#475569'; ctx.fillRect(x, canvas.height - (n.vel/127)*velocityLaneHeight, barWidth-2, (n.vel/127)*velocityLaneHeight);
+            ctx.fillStyle = activeColor; ctx.fillRect(x + offsetX, canvas.height - (newV/127)*velocityLaneHeight, barWidth-2, (newV/127)*velocityLaneHeight);
         });
     }
-
-    pianoScroll.onscroll = () => { 
-        keyLabels.scrollTop = pianoScroll.scrollTop; 
-        velScroll.scrollLeft = pianoScroll.scrollLeft; 
-    };
 </script>
 </body>
 </html>
@@ -348,7 +291,7 @@ def process():
     out = io.BytesIO()
     mid.save(file=out)
     out.seek(0)
-    return send_file(out, as_attachment=True, download_name=f"{tool}_output.mid", mimetype='audio/midi')
+    return send_file(out, as_attachment=True, download_name=f"{tool}_processed.mid", mimetype='audio/midi')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
